@@ -1,0 +1,19 @@
+{
+    "files.associations": {
+        "bitset": "c",
+        "chrono": "c",
+        "algorithm": "c",
+        "__bit_reference": "c",
+        "unordered_map": "c",
+        "ratio": "c",
+        "operator.h": "c",
+        "utils.h": "c",
+        "stdio.h": "c",
+        "random": "c",
+        "__locale": "c",
+        "pbc.h": "c",
+        "system_error": "c",
+        "functional": "c",
+        "algo.h": "c"
+    }
+}
