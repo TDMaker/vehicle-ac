@@ -3,6 +3,7 @@ extern int counter;
 int rows = 0;
 int curr_row = 0;
 int *tmp_elem;
+char **tmp_rho;
 
 void set_childrens_vec(TreeNode *node)
 {
@@ -67,18 +68,24 @@ TreeNode *get_complete_tree(char *input)
     return root;
 }
 
-void get_W(rdmat *W, TreeNode *root)
+void get_W_rho(rdmat *W, char ***rho, TreeNode *root)
 {
     printf("rows = %d, cols = %d\n", rows, counter);
     (*W).cols = counter;
     (*W).rows = rows;
     tmp_elem = (int *)calloc(sizeof(int), rows * counter);
+    tmp_rho = (char **)malloc(sizeof(char *) * rows);
     breadth_first_traversal(root, rdmat_row_concat);
     W->elem = tmp_elem;
+    *rho = tmp_rho;
 }
 
 void rdmat_row_concat(TreeNode *node)
 {
     if (strcmp(node->value, "||") && strcmp(node->value, "&&"))
-        memcpy(tmp_elem + curr_row++ * counter, node->vec->data, counter * sizeof(int));
+    {
+        memcpy(tmp_elem + curr_row * counter, node->vec->data, counter * sizeof(int));
+        tmp_rho[curr_row] = strdup(node->value);
+        curr_row++;
+    }
 }

@@ -1,10 +1,7 @@
 #ifndef __LSSS_H__
 #define __LSSS_H__
+#include <string.h>
 #include "act_visitor.h"
-void set_childrens_vec(TreeNode *node);
-void pad_0s(TreeNode *node);
-void display(TreeNode *node);
-TreeNode *get_complete_tree(char *input);
 
 typedef struct
 {
@@ -13,7 +10,11 @@ typedef struct
     int *elem;
 } rdmat;
 
+void set_childrens_vec(TreeNode *node);
+void pad_0s(TreeNode *node);
+void display(TreeNode *node);
+TreeNode *get_complete_tree(char *input);
 void rdmat_row_concat(TreeNode *node);
-void get_W(rdmat *W, TreeNode *root);
+void get_W_rho(rdmat *W, char ***rho, TreeNode *root);
 
 #endif /* __LSSS_H__ */
