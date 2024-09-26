@@ -150,12 +150,13 @@ rdvec *make_rdvec()
         exit(-1);
     }
     (*tmp).length = 1;
-    tmp->data = (int *)malloc(sizeof(int) * CAPACITY);
+    tmp->data = (int *)calloc(sizeof(int), CAPACITY);
     if (tmp->data == NULL)
     {
         puts("mcalloc failed, exiting...");
         exit(-1);
     }
+    // printf("The addr of the new alloced vec is %p.\n", tmp);
     return tmp;
 }
 

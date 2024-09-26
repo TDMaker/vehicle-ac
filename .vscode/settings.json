@@ -21,6 +21,7 @@
         "deque": "c",
         "__memory": "c",
         "limits": "c",
-        "vector": "c"
+        "vector": "c",
+        "rusc.h": "c"
     }
 }
