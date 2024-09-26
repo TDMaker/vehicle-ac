@@ -50,7 +50,6 @@ typedef struct Parser
     Token current;
 } Parser;
 
-void init_lexer(Lexer *lexer, const char *input);
 TreeNode *parse_and_or(Parser *parser);
 TreeNode *get_root(char *input);
 rdvec *make_rdvec();

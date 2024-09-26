@@ -1,7 +1,7 @@
 #include "lsss.h"
 extern int counter;
 
-void set_childrens_vec(TreeNode *node, int)
+void set_childrens_vec(TreeNode *node)
 {
     if (strcmp(node->value, "&&") == 0)
     {
@@ -29,14 +29,31 @@ void set_childrens_vec(TreeNode *node, int)
         memcpy(node->right->vec->data, node->vec->data, sizeof(int) * parent_length);
     }
 }
-void pad_0s(TreeNode *node, int length_set)
+void pad_0s(TreeNode *node)
 {
-    int gap = length_set - (*node->vec).length;
-    for (int i = (*node->vec).length; i < length_set; i++)
+    int length_set = counter;
+    if (strcmp(node->value, "||") && strcmp(node->value, "&&"))
     {
-        node->vec->data[i] = 0;
+        int gap = length_set - (*node->vec).length;
+        for (int i = (*node->vec).length; i < length_set; i++)
+        {
+            node->vec->data[i] = 0;
+        }
+        (*node->vec).length = length_set;
     }
-    (*node->vec).length = length_set;
+}
+
+void display(TreeNode *node)
+{
+    if (strcmp(node->value, "||") && strcmp(node->value, "&&"))
+    {
+        printf("%s: [", node->value);
+        for (int i = 0; i < (*node->vec).length; i++)
+        {
+            printf("%d ", node->vec->data[i]);
+        }
+        puts("]");
+    }
 }
 
 TreeNode *get_complete_tree(char *input)
@@ -45,7 +62,7 @@ TreeNode *get_complete_tree(char *input)
     root->vec = make_rdvec();
     root->vec->data[0] = 1;
     (*root->vec).length = 1;
-    breadth_first_traversal(root, set_childrens_vec, FILLING);
-    breadth_first_traversal(root, pad_0s, PADDING);
+    breadth_first_traversal(root, set_childrens_vec);
+    breadth_first_traversal(root, pad_0s);
     return root;
 }

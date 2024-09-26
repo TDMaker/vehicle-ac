@@ -54,7 +54,7 @@ TreeNode *dequeue(Queue *queue)
 }
 
 // 广度优先遍历二叉树
-void breadth_first_traversal(TreeNode *root, my_operator op, OP_TYPE type)
+void breadth_first_traversal(TreeNode *root, my_operator op)
 {
     if (root == NULL)
     {
@@ -68,27 +68,7 @@ void breadth_first_traversal(TreeNode *root, my_operator op, OP_TYPE type)
     while (!is_empty(&queue))
     {
         TreeNode *current = dequeue(&queue);
-        // printf("%s ", current->value);
-        switch (type)
-        {
-        case PADDING:
-            if (strcmp(current->value, "||") && strcmp(current->value, "&&"))
-            {
-                op(current, counter);
-                printf("The vec of node %s\n is [", current->value);
-                for (int i = 0; i < (*current->vec).length; i++)
-                {
-                    printf("%d ", current->vec->data[i]);
-                }
-                puts("]\n");
-                // printf("%s %p\n", node->value, node->vec);
-            }
-            break;
-        case FILLING:
-            op(current, 0);
-        default:
-            break;
-        }
+        op(current);
 
         if (current->left)
         {

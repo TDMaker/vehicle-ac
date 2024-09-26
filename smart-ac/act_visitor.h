@@ -13,11 +13,12 @@ typedef struct
     QueueNode *rear;
 } Queue;
 
-typedef void (*my_operator)(TreeNode *a, int b);
+typedef void (*my_operator)(TreeNode *a);
 
 typedef enum {
     PADDING,
-    FILLING
+    FILLING,
+    DISPLAY,
 } OP_TYPE;
 
-void breadth_first_traversal(TreeNode *root, my_operator op, OP_TYPE type);
+void breadth_first_traversal(TreeNode *root, my_operator op);

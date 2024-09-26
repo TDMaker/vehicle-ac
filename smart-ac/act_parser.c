@@ -71,7 +71,35 @@ Token next_token(Parser *parser)
 }
 
 // 解析布尔表达式
-TreeNode *parse_expression(Parser *parser);
+
+TreeNode *parse_expression(Parser *parser)
+{
+    Token token = next_token(parser);
+    if (token.type == TOKEN_LPAREN)
+    {
+        TreeNode *node = parse_and_or(parser);
+        Token close_paren = next_token(parser);
+        if (close_paren.type != TOKEN_RPAREN)
+        {
+            fprintf(stderr, "Expected ')'\n");
+            exit(1);
+        }
+        return node;
+    }
+    else if (token.type == TOKEN_KEYWORD)
+    {
+        TreeNode *node = (TreeNode *)malloc(sizeof(TreeNode));
+        strcpy(node->value, token.text);
+        node->left = NULL;
+        node->right = NULL;
+        return node;
+    }
+    else
+    {
+        fprintf(stderr, "Unexpected token '%s'\n", token.text);
+        exit(1);
+    }
+}
 
 TreeNode *parse_and_or(Parser *parser)
 {
@@ -103,35 +131,6 @@ TreeNode *parse_and_or(Parser *parser)
     }
 }
 
-TreeNode *parse_expression(Parser *parser)
-{
-    Token token = next_token(parser);
-    if (token.type == TOKEN_LPAREN)
-    {
-        TreeNode *node = parse_and_or(parser);
-        Token close_paren = next_token(parser);
-        if (close_paren.type != TOKEN_RPAREN)
-        {
-            fprintf(stderr, "Expected ')'\n");
-            exit(1);
-        }
-        return node;
-    }
-    else if (token.type == TOKEN_KEYWORD)
-    {
-        TreeNode *node = (TreeNode *)malloc(sizeof(TreeNode));
-        strcpy(node->value, token.text);
-        node->left = NULL;
-        node->right = NULL;
-        return node;
-    }
-    else
-    {
-        fprintf(stderr, "Unexpected token '%s'\n", token.text);
-        exit(1);
-    }
-}
-
 // 释放树的内存
 void free_tree(TreeNode *node)
 {
@@ -141,7 +140,6 @@ void free_tree(TreeNode *node)
     free_tree(node->right);
     free(node);
 }
-
 
 rdvec *make_rdvec()
 {
