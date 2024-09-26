@@ -14,6 +14,6 @@ typedef struct
 } rdmat;
 
 void rdmat_row_concat(TreeNode *node);
-void get_W(TreeNode *root);
+void get_W(rdmat *W, TreeNode *root);
 
 #endif /* __LSSS_H__ */

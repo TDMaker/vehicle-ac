@@ -1,7 +1,8 @@
 #include "lsss.h"
 extern int counter;
-rdmat *W;
-int rows;
+int rows = 0;
+int curr_row = 0;
+int *tmp_elem;
 
 void set_childrens_vec(TreeNode *node)
 {
@@ -66,21 +67,18 @@ TreeNode *get_complete_tree(char *input)
     return root;
 }
 
-void get_W(TreeNode *root)
+void get_W(rdmat *W, TreeNode *root)
 {
-    W = (rdmat *)malloc(sizeof(rdmat));
     printf("rows = %d, cols = %d\n", rows, counter);
     (*W).cols = counter;
-    (*W).rows = 0;
-    (*W).elem = (int *)calloc(sizeof(int), rows * counter);
+    (*W).rows = rows;
+    tmp_elem = (int *)calloc(sizeof(int), rows * counter);
     breadth_first_traversal(root, rdmat_row_concat);
+    W->elem = tmp_elem;
 }
 
 void rdmat_row_concat(TreeNode *node)
 {
     if (strcmp(node->value, "||") && strcmp(node->value, "&&"))
-    {
-        memcpy((W->elem) + (*W).rows * counter, node->vec->data, counter * sizeof(int));
-        (*W).rows++;
-    }
+        memcpy(tmp_elem + curr_row++ * counter, node->vec->data, counter * sizeof(int));
 }

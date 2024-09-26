@@ -1,6 +1,5 @@
 #include <pbc/pbc.h>
 #include "rusc.h"
-extern rdmat *W;
 int main()
 {
 
@@ -18,13 +17,13 @@ int main()
     char input[] = "(E)&&((((A)&&(B))||((C)&&(D)))||(((A)||(B))&&((C)||(D))))";
     TreeNode *root = get_complete_tree(input);
     breadth_first_traversal(root, display);
-
-    get_W(root);
-    for (int i = 0; i < (*W).rows; i++)
+    rdmat W;
+    get_W(&W, root);
+    for (int i = 0; i < W.rows; i++)
     {
-        for (int j = 0; j < (*W).cols; j++)
+        for (int j = 0; j < W.cols; j++)
         {
-            printf("%2d ", (W->elem)[i * (*W).cols + j]);
+            printf("%2d ", W.elem[i * W.cols + j]);
         }
         puts("");
     }
