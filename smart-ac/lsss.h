@@ -6,14 +6,14 @@ void pad_0s(TreeNode *node);
 void display(TreeNode *node);
 TreeNode *get_complete_tree(char *input);
 
-// typedef struct
-// {
-//     int rows;
-//     int cols;
-//     float *elem;
-// } rdmat_f;
+typedef struct
+{
+    int rows;
+    int cols;
+    int *elem;
+} rdmat;
 
-// void rdmat_row_concat(TreeNode *node);
-// void get_W(TreeNode *root);
+void rdmat_row_concat(TreeNode *node);
+void get_W(TreeNode *root);
 
 #endif /* __LSSS_H__ */

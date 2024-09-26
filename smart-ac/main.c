@@ -1,6 +1,6 @@
 #include <pbc/pbc.h>
 #include "rusc.h"
-// extern rdmat_f *W;
+extern rdmat *W;
 int main()
 {
 
@@ -19,14 +19,15 @@ int main()
     TreeNode *root = get_complete_tree(input);
     breadth_first_traversal(root, display);
 
-//    get_W(root);
-    // for (int i = 0; i < (*W).rows; i++)
-    // {
-    //     for (int j = 0; j < (*W).cols; j++)
-    //     {
-    //         printf("%.f ", (W->elem)[i * 5 + j]);
-    //     }
-    // }
+    get_W(root);
+    for (int i = 0; i < (*W).rows; i++)
+    {
+        for (int j = 0; j < (*W).cols; j++)
+        {
+            printf("%2d ", (W->elem)[i * (*W).cols + j]);
+        }
+        puts("");
+    }
 
     return 0;
 }

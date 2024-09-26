@@ -1,5 +1,7 @@
 #include "lsss.h"
 extern int counter;
+rdmat *W;
+int rows;
 
 void set_childrens_vec(TreeNode *node)
 {
@@ -35,8 +37,8 @@ void pad_0s(TreeNode *node)
             node->vec->data[i] = 0;
         }
         (*node->vec).length = length_set;
+        rows++;
     }
-    // rows++;
 }
 
 void display(TreeNode *node)
@@ -64,22 +66,21 @@ TreeNode *get_complete_tree(char *input)
     return root;
 }
 
-// void get_W(TreeNode *root)
-// {
-//     W = (rdmat_f *)malloc(sizeof(rdmat_f));
-//     printf("rows = %d, cols = %d\n", rows, counter);
-//     (*W).cols = counter;
-//     (*W).rows = 0;
-//     (*W).elem = (float *)calloc(sizeof(float), rows * counter);
-//     // breadth_first_traversal(root, rdmat_row_concat);
-// }
+void get_W(TreeNode *root)
+{
+    W = (rdmat *)malloc(sizeof(rdmat));
+    printf("rows = %d, cols = %d\n", rows, counter);
+    (*W).cols = counter;
+    (*W).rows = 0;
+    (*W).elem = (int *)calloc(sizeof(int), rows * counter);
+    breadth_first_traversal(root, rdmat_row_concat);
+}
 
-// void rdmat_row_concat(TreeNode *node)
-// {
-//     // memcpy((*W).elem + (*W).rows * (*W).cols, node->vec->data, (*node->vec).length);
-//     for (int i = 0; i < (*node->vec).length; i++)
-//     {
-//         W->elem[(*W).rows * (*W).cols + i] = (float)node->vec->data[i];
-//     }
-//     (*W).rows++;
-// }
+void rdmat_row_concat(TreeNode *node)
+{
+    if (strcmp(node->value, "||") && strcmp(node->value, "&&"))
+    {
+        memcpy((W->elem) + (*W).rows * counter, node->vec->data, counter * sizeof(int));
+        (*W).rows++;
+    }
+}

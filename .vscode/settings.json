@@ -22,6 +22,7 @@
         "__memory": "c",
         "limits": "c",
         "vector": "c",
-        "rusc.h": "c"
+        "rusc.h": "c",
+        "pbc.h": "c"
     }
 }
