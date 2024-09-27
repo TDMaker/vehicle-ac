@@ -20,19 +20,19 @@ rdmat_mp make_rdmat_mp(int rows, int cols)
     return tmp;
 }
 
-void free_rdmat_mp(rdmat_mp target)
-{
-    for (int i = 0; i < target.rows; i++)
-    {
-        for (int j = 0; j < target.cols; j++)
-        {
-            element_clear(target.elem[target.cols * i + j]);
-        }
-    }
-    return;
-}
+// void free_rdmat_mp(rdmat_mp target)
+// {
+//     for (int i = 0; i < target.rows; i++)
+//     {
+//         for (int j = 0; j < target.cols; j++)
+//         {
+//             element_clear(target.elem[target.cols * i + j]);
+//         }
+//     }
+//     return;
+// }
 
-rdmat_mp rdmat_mul_sp_mp(rdmat_f a, rdmat_mp b)
+rdmat_mp rdmat_mul_sp_mp(rdmat a, rdmat_mp b)
 {
     rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
     element_t prod;
@@ -53,65 +53,274 @@ rdmat_mp rdmat_mul_sp_mp(rdmat_f a, rdmat_mp b)
     return c;
 }
 
-rdmat_mp rdmat_mul_mp_sp(rdmat_mp a, rdmat_f b)
+rdmat_f gaussian_elimination(rdmat a)
 {
+    int m = a.rows;
+    int n = a.cols;
 
-    rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
-    element_t prod;
-    element_init_Zr(prod, pairing);
+    // 创建必要的矩阵
+    rdmat_f aTa = make_rdmat_f(n, n);
+    rdmat_f b = make_rdmat_f(n, 1);
+    rdmat_f aTb = make_rdmat_f(n, 1);
+    b.elem[0] = 1.0f;
+
+    // 计算 aTa 和 aTb
+    for (int i = 0; i < n; i++)
+    {
+        aTb.elem[i] = 0.0f;
+        for (int j = 0; j < n; j++)
+        {
+            aTa.elem[i * n + j] = 0.0f;
+            for (int k = 0; k < m; k++)
+                aTa.elem[i * n + j] += a.elem[k * n + i] * a.elem[k * n + j];
+        }
+        for (int k = 0; k < m; k++)
+            aTb.elem[i] += a.elem[k * n + i] * b.elem[k];
+    }
+
+    // 高斯消元
+    for (int i = 0; i < n; i++)
+    {
+        int maxRow = i;
+        float maxAbsPivot = fabs(aTa.elem[i * n + i]);
+        for (int j = i + 1; j < n; j++)
+        {
+            float absVal = fabs(aTa.elem[j * n + i]);
+            if (absVal > maxAbsPivot)
+            {
+                maxAbsPivot = absVal;
+                maxRow = j;
+            }
+        }
+
+        if (maxAbsPivot == 0.0f)
+        {
+            // 主元为零，无法继续消元
+            free_rdmat_f(aTa);
+            free_rdmat_f(b);
+            free_rdmat_f(aTb);
+            return make_rdmat_f(n, 1); // 返回一个空矩阵
+        }
+
+        // 交换行
+        for (int k = i; k < n; k++)
+        {
+            float temp = aTa.elem[i * n + k];
+            aTa.elem[i * n + k] = aTa.elem[maxRow * n + k];
+            aTa.elem[maxRow * n + k] = temp;
+        }
+        float tempB = aTb.elem[i];
+        aTb.elem[i] = aTb.elem[maxRow];
+        aTb.elem[maxRow] = tempB;
+
+        // 消元
+        for (int j = i + 1; j < n; j++)
+        {
+            float mult = aTa.elem[j * n + i] / aTa.elem[i * n + i];
+            aTb.elem[j] -= mult * aTb.elem[i];
+            for (int k = i; k < n; k++)
+                aTa.elem[j * n + k] -= mult * aTa.elem[i * n + k];
+        }
+    }
+
+    // 回代
+    rdmat_f c = make_rdmat_f(n, 1);
+    for (int i = n - 1; i >= 0; i--)
+    {
+        c.elem[i] = aTb.elem[i];
+        for (int j = i + 1; j < n; j++)
+            c.elem[i] -= aTa.elem[i * n + j] * c.elem[j];
+        c.elem[i] /= aTa.elem[i * n + i];
+    }
+
+    free_rdmat_f(aTa);
+    free_rdmat_f(b);
+    free_rdmat_f(aTb);
+    return c;
+}
+
+rdmat_f make_rdmat_f(int rows, int cols)
+{
+    rdmat_f tmp = {.rows = rows, .cols = cols, .elem = (float *)calloc(sizeof(float), rows * cols)};
+    if (tmp.elem == NULL)
+    {
+        puts("calloc failed, exiting...");
+        exit(-1);
+    }
+    return tmp;
+}
+
+rdmat make_rdmat(int rows, int cols)
+{
+    rdmat tmp = {.rows = rows, .cols = cols, .elem = (int *)calloc(sizeof(int), rows * cols)};
+    if (tmp.elem == NULL)
+    {
+        puts("calloc failed, exiting...");
+        exit(-1);
+    }
+    return tmp;
+}
+
+rdmat pick_rows(int count, rdmat a, int *rows)
+{
+    rdmat c = make_rdmat(count, a.cols);
+
+    for (int i = 0; i < count; i++)
+    {
+        memcpy(c.elem + i * c.cols, a.elem + rows[i] * a.cols, a.cols * sizeof(int));
+    }
+    return c;
+}
+rdmat_f rdmat_f_mul(rdmat_f a, rdmat_f b)
+{
+    rdmat_f c = make_rdmat_f(a.rows, b.cols);
+
     for (int i = 0; i < a.rows; i++)
     {
         for (int j = 0; j < b.cols; j++)
         {
-            element_set0(c.elem[i * b.cols + j]);
             for (int k = 0; k < a.cols; k++)
             {
-                element_mul_si(prod, a.elem[i * a.cols + k], b.elem[k * b.cols + j]);
-                element_add(c.elem[i * c.cols + j], c.elem[i * c.cols + j], prod);
+                c.elem[i * c.cols + j] += a.elem[i * a.cols + k] * b.elem[k * b.cols + j];
             }
         }
     }
-    element_clear(prod);
+
     return c;
 }
 
-rdmat_mp gen_shares_mp(element_t *secret, rdmat_f M)
+void free_rdmat_f(rdmat_f a)
 {
-
-    rdmat_mp rho = make_rdmat_mp(M.cols, 1);
-    for (int i = 0; i < rho.rows; i++)
-    {
-        element_random(rho.elem[i]);
-    }
-    element_set(rho.elem[0], *secret);
-    rdmat_mp shares = rdmat_mul_sp_mp(M, rho);
-    free_rdmat_mp(rho);
-    return shares;
+    free(a.elem);
+    return;
 }
 
-rdmat_mp pick_rows_mp(int count, rdmat_mp a, int *rows)
+void rdmat_f_print(const char *name, rdmat_f a)
 {
-    rdmat_mp c = make_rdmat_mp(count, a.cols);
-
-    for (int i = 0; i < count; i++)
+    printf("The matrix **%s** has %d rows and %d cols.\n", name, a.rows, a.cols);
+    printf("%s  ", "┌");
+    for (int i = 0; i < a.cols - 1; i++)
+        printf("\t");
+    puts("   ┐");
+    for (int i = 0; i < a.rows; i++)
     {
+        printf("│");
         for (int j = 0; j < a.cols; j++)
         {
-            element_set(c.elem[i * c.cols + j], a.elem[rows[i] * a.cols + j]);
+
+            printf("%.2f", a.elem[i * a.cols + j]);
+            if (j < a.cols - 1)
+                putchar('\t');
         }
+        printf(" │\n");
     }
-    return c;
+    printf("%s  ", "└");
+    for (int i = 0; i < a.cols - 1; i++)
+        putchar('\t');
+    puts("   ┘");
+    puts("=================================================\n");
+    return;
 }
 
-rdmat_mp transpose_mp(rdmat_mp a)
+void rdmat_print(const char *name, rdmat a)
 {
-    rdmat_mp c = make_rdmat_mp(a.cols, a.rows);
+    printf("The matrix **%s** has %d rows and %d cols.\n", name, a.rows, a.cols);
+    printf("%s", "┌");
+    for (int i = 0; i < a.cols - 1; i++)
+        putchar('\t');
+    puts("   ┐");
+    for (int i = 0; i < a.rows; i++)
+    {
+        printf("│");
+        for (int j = 0; j < a.cols; j++)
+        {
+
+            printf("%2d", a.elem[i * a.cols + j]);
+            if (j < a.cols - 1)
+                putchar('\t');
+        }
+        printf(" │\n");
+    }
+    printf("%s", "└");
+    for (int i = 0; i < a.cols - 1; i++)
+        putchar('\t');
+    puts("   ┘");
+    puts("=================================================\n");
+    return;
+}
+
+rdmat transpose(rdmat a)
+{
+    rdmat c = make_rdmat(a.cols, a.rows);
     for (int i = 0; i < c.rows; i++)
     {
         for (int j = 0; j < c.cols; j++)
         {
-            element_set(c.elem[i * c.cols + j], a.elem[j * a.cols + i]);
+            c.elem[i * c.cols + j] = a.elem[j * a.cols + i];
         }
     }
     return c;
 }
+
+// rdmat_mp rdmat_mul_mp_sp(rdmat_mp a, rdmat_f b)
+// {
+
+//     rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
+//     element_t prod;
+//     element_init_Zr(prod, pairing);
+//     for (int i = 0; i < a.rows; i++)
+//     {
+//         for (int j = 0; j < b.cols; j++)
+//         {
+//             element_set0(c.elem[i * b.cols + j]);
+//             for (int k = 0; k < a.cols; k++)
+//             {
+//                 element_mul_si(prod, a.elem[i * a.cols + k], b.elem[k * b.cols + j]);
+//                 element_add(c.elem[i * c.cols + j], c.elem[i * c.cols + j], prod);
+//             }
+//         }
+//     }
+//     element_clear(prod);
+//     return c;
+// }
+
+// rdmat_mp gen_shares_mp(element_t *secret, rdmat_f M)
+// {
+
+//     rdmat_mp rho = make_rdmat_mp(M.cols, 1);
+//     for (int i = 0; i < rho.rows; i++)
+//     {
+//         element_random(rho.elem[i]);
+//     }
+//     element_set(rho.elem[0], *secret);
+//     rdmat_mp shares = rdmat_mul_sp_mp(M, rho);
+//     free_rdmat_mp(rho);
+//     return shares;
+// }
+
+// rdmat_mp pick_rows_mp(int count, rdmat_mp a, int *rows)
+// {
+//     rdmat_mp c = make_rdmat_mp(count, a.cols);
+
+//     for (int i = 0; i < count; i++)
+//     {
+//         for (int j = 0; j < a.cols; j++)
+//         {
+//             element_set(c.elem[i * c.cols + j], a.elem[rows[i] * a.cols + j]);
+//         }
+//     }
+//     return c;
+// }
+
+// rdmat_mp transpose_mp(rdmat_mp a)
+// {
+//     rdmat_mp c = make_rdmat_mp(a.cols, a.rows);
+//     for (int i = 0; i < c.rows; i++)
+//     {
+//         for (int j = 0; j < c.cols; j++)
+//         {
+//             element_set(c.elem[i * c.cols + j], a.elem[j * a.cols + i]);
+//         }
+//     }
+//     return c;
+// }

@@ -1,3 +1,6 @@
+#ifndef __ACT_PARSER_H__
+#define __ACT_PARSER_H__
+
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -53,3 +56,5 @@ typedef struct Parser
 TreeNode *parse_and_or(Parser *parser);
 TreeNode *get_root(char *input);
 rdvec *make_rdvec();
+
+#endif /* __ACT_PARSER_H__ */

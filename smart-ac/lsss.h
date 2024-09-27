@@ -2,13 +2,7 @@
 #define __LSSS_H__
 #include <string.h>
 #include "act_visitor.h"
-
-typedef struct
-{
-    int rows;
-    int cols;
-    int *elem;
-} rdmat;
+#include "utils.h"
 
 void set_childrens_vec(TreeNode *node);
 void pad_0s(TreeNode *node);

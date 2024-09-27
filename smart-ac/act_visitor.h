@@ -1,3 +1,5 @@
+#ifndef __ACT_VISITOR_H__
+#define __ACT_VISITOR_H__
 #include "act_parser.h"
 // 定义 QueueNode 结构体
 typedef struct QueueNode
@@ -22,3 +24,5 @@ typedef enum {
 } OP_TYPE;
 
 void breadth_first_traversal(TreeNode *root, my_operator op);
+
+#endif /* __ACT_VISITOR_H__ */
