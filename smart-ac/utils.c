@@ -155,6 +155,11 @@ rdmat pick_rows(int count, rdmat a, int *rows)
 
     for (int i = 0; i < count; i++)
     {
+        if (rows[i] >= a.rows)
+        {
+            puts("A row picked exceeds the source matrix!\nexitting...");
+            exit(-1);
+        }
         memcpy(c.elem + i * c.cols, a.elem + rows[i] * a.cols, a.cols * sizeof(int));
     }
     return c;

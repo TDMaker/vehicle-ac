@@ -2,14 +2,12 @@
 extern pairing_t pairing;
 int main()
 {
-
     // SysInit
     element_t g, h, u, v, w, alpha, pk_frag;
     sys_init(&alpha, &g, &h, &u, &v, &w, &pk_frag);
 
     // KeyDist
     element_t K0, K1, *K2_, *K3_;
-    // int S[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
     int S[] = {0, 3, 4, 7};
     key_dist(&K0, &K1, &K2_, &K3_, &alpha, &g, &h, &u, &v, &w, S, sizeof(S) / sizeof(S[0]));
 
