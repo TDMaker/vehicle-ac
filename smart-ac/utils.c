@@ -152,6 +152,8 @@ rdmat make_rdmat(int rows, int cols)
 rdmat pick_rows(int count, rdmat a, int *rows)
 {
     rdmat c = make_rdmat(count, a.cols);
+    int offset = 0;
+    int has = 0;
 
     for (int i = 0; i < count; i++)
     {
@@ -160,8 +162,21 @@ rdmat pick_rows(int count, rdmat a, int *rows)
             puts("A row picked exceeds the source matrix!\nexitting...");
             exit(-1);
         }
-        memcpy(c.elem + i * c.cols, a.elem + rows[i] * a.cols, a.cols * sizeof(int));
+        has = 0;
+        for (int j = 0; j < offset; j++)
+        {
+            if (memcmp(c.elem + j * c.cols, a.elem + rows[i] * a.cols, a.cols * sizeof(int)) == 0)
+            {
+                has = 1;
+                break;
+            }
+        }
+        if (!has)
+        {
+            memcpy(c.elem + (offset++) * c.cols, a.elem + rows[i] * a.cols, a.cols * sizeof(int));
+        }
     }
+    c.rows = offset;
     return c;
 }
 rdmat_f rdmat_f_mul(rdmat_f a, rdmat_f b)

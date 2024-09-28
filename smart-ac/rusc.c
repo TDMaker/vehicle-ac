@@ -180,7 +180,7 @@ void verify(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, eleme
         pairing_apply(prod, (*C3_)[L[i]], (*K3_)[i], pairing);
         element_mul(B_i, B_i, prod);
 
-        element_set_si(omega_mp, omega.elem[i]);
+        element_set_si(omega_mp, i >= omega.rows ? 0 : omega.elem[i]);
         element_pow_zn(B_i, B_i, omega_mp);
         element_mul(B, B, B_i);
     }

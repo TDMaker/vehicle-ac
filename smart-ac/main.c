@@ -8,7 +8,8 @@ int main()
 
     // KeyDist
     element_t K0, K1, *K2_, *K3_;
-    int S[] = {0, 3, 4, 7};
+    // int S[] = {0, 3, 4, 7, 8};
+    int S[] = {0, 1, 2, 5, 6};
     key_dist(&K0, &K1, &K2_, &K3_, &alpha, &g, &h, &u, &v, &w, S, sizeof(S) / sizeof(S[0]));
 
     // PolicyInit
