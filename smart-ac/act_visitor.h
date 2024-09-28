@@ -24,5 +24,5 @@ typedef enum {
 } OP_TYPE;
 
 void breadth_first_traversal(TreeNode *root, my_operator op);
-
+void free_tree(TreeNode *node);
 #endif /* __ACT_VISITOR_H__ */

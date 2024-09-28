@@ -89,3 +89,8 @@ void rdmat_row_concat(TreeNode *node)
         curr_row++;
     }
 }
+
+void rd_free_tree(TreeNode *tree)
+{
+    free_tree(tree);
+}
