@@ -88,7 +88,7 @@ void key_dist(element_t **r_, element_t *K0, element_t *K1, element_t **K2_, ele
     element_clear(i_mp);
     element_clear(tmp_exp);
 }
-void policy_init(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t *M, element_t **lambda_, element_t *g, element_t *h, element_t *pk_frag, element_t *u, element_t *v, element_t *w, char *input)
+void policy_init(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t *M, element_t **lambda_, element_t *g, element_t *h, element_t *pk_frag, element_t *u, element_t *v, element_t *w, char *input, element_t *s)
 {
     TreeNode *root = get_complete_tree(input);
     breadth_first_traversal(root, display);
@@ -103,6 +103,7 @@ void policy_init(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, 
     {
         element_random(vec_v.elem[i]);
     }
+    element_set(*s, vec_v.elem[0]);
 
     *lambda_ = rdmat_mul_sp_mp(W, vec_v).elem;
     rdmat_mp t_ = make_rdmat_mp(1, L);
@@ -110,17 +111,22 @@ void policy_init(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, 
     {
         element_random(t_.elem[i]);
     }
+
+    element_t tmp1, tmp2, tmp3;
+    element_init_G1(tmp1, pairing);
+    element_init_Zr(tmp2, pairing);
+    element_init_GT(tmp3, pairing);
+
     element_init_GT(*C, pairing);
-    element_mul(*C, *M, *pk_frag);
-    element_mul_zn(*C, *C, vec_v.elem[0]);
+    element_pow_zn(tmp3, *pk_frag, vec_v.elem[0]);
+    element_mul(*C, *M, tmp3);
+    
+    // element_mul_zn(*C, *C, vec_v.elem[0]);
     element_init_G1(*C0, pairing);
     element_pow_zn(*C0, *g, vec_v.elem[0]);
     *C1_ = (element_t *)malloc(sizeof(element_t) * L);
     *C2_ = (element_t *)malloc(sizeof(element_t) * L);
     *C3_ = (element_t *)malloc(sizeof(element_t) * L);
-    element_t tmp1, tmp2;
-    element_init_G1(tmp1, pairing);
-    element_init_Zr(tmp2, pairing);
     for (int i = 0; i < L; i++)
     {
         element_init_G1((*C1_)[i], pairing);
@@ -141,7 +147,7 @@ void policy_init(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, 
     }
 }
 
-void verify(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t *K0, element_t *K1, element_t **K2_, element_t **K3_, element_t *M, int *L, int vert_L, element_t* w, element_t** lambda_, element_t** r_, element_t* g)
+void verify(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t *K0, element_t *K1, element_t **K2_, element_t **K3_, element_t *M, int *L, int vert_L, element_t *w, element_t **lambda_, element_t **r_, element_t *g, element_t *s)
 {
     rdmat rows_picked = pick_rows(vert_L, W, L);
     rdmat_print("rows_picked", rows_picked);
@@ -158,12 +164,11 @@ void verify(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, eleme
     element_init_Zr(omega_mp, pairing);
     element_set1(B);
 
-
-element_t g_w, r_lambda, Bi;
-element_init_GT(g_w, pairing);
-element_init_Zr(r_lambda, pairing);
-element_init_GT(Bi, pairing);
-pairing_apply(g_w, *g, *w, pairing);
+    element_t g_w, r_lambda, Bi;
+    element_init_GT(g_w, pairing);
+    element_init_Zr(r_lambda, pairing);
+    element_init_GT(Bi, pairing);
+    pairing_apply(g_w, *g, *w, pairing);
 
     for (int i = 0; i < vert_L; i++)
     {
@@ -174,27 +179,40 @@ pairing_apply(g_w, *g, *w, pairing);
         pairing_apply(prod, (*C3_)[L[i]], (*K3_)[i], pairing);
         element_mul(B_[i], B_[i], prod);
 
-        
-element_mul_zn(r_lambda, (*r_)[vert_L], (*lambda_)[L[i]]);
-element_pow_zn(Bi, g_w, r_lambda);
+        element_mul_zn(r_lambda, (*r_)[vert_L], (*lambda_)[L[i]]);
+        element_pow_zn(Bi, g_w, r_lambda);
 
-    if (!element_cmp(B_[i], Bi))
+        if (!element_cmp(B_[i], Bi))
+        {
+            puts("Decryption succeed.\n");
+        }
+        else
+        {
+            puts("Decryption faild!\n");
+        }
+
+        element_set_si(omega_mp, omega.elem[i]);
+        element_pow_zn(B_[i], B_[i], omega_mp);
+        element_mul(B, B, B_[i]);
+    }
+    element_t rs;
+    element_init_Zr(rs, pairing);
+    element_mul_zn(rs, (*r_)[vert_L], *s);
+    element_pow_zn(prod, g_w, rs);
+    if (!element_cmp(B, prod))
     {
-        puts("Decryption succeed.\n");
+        puts("Decryption succeed, B = this.\n");
     }
     else
     {
         puts("Decryption faild!\n");
     }
 
-        element_set_si(omega_mp, omega.elem[i]);
-        element_pow_zn(B_[i], B_[i], omega_mp);
-        element_mul(B, B, B_[i]);
-    }
-// exit(0);
+    // exit(0);
 
     element_mul(B, B, *C);
     pairing_apply(prod, *C0, *K0, pairing);
+    element_printf("M = %B\n", *M);
     element_mul(prod, *M, prod);
 
     if (!element_cmp(B, prod))

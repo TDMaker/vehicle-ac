@@ -18,9 +18,11 @@ int main()
     // PolicyInit
     char input[] = "(E)&&((((A)&&(B))||((C)&&(D)))||(((A)||(B))&&((C)||(D))))";
     element_t M, C, C0, *C1_, *C2_, *C3_, *lambda_;
-    policy_init(&C, &C0, &C1_, &C2_, &C3_, &M, &lambda_, &g, &h, &pk_frag, &u, &v, &w, input);
+    element_t s;
+    element_init_Zr(s, pairing);
+    policy_init(&C, &C0, &C1_, &C2_, &C3_, &M, &lambda_, &g, &h, &pk_frag, &u, &v, &w, input, &s);
     // Verify
-    verify(&C, &C0, &C1_, &C2_, &C3_, &K0, &K1, &K2_, &K3_, &M, S, sizeof(S) / sizeof(S[0]), &w, &lambda_, &r_, &g);
+    verify(&C, &C0, &C1_, &C2_, &C3_, &K0, &K1, &K2_, &K3_, &M, S, sizeof(S) / sizeof(S[0]), &w, &lambda_, &r_, &g, &s);
     // for (int i = 0; i < W.rows; i++)
     // {
     //     for (int j = 0; j < W.cols; j++)
