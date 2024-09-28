@@ -8,10 +8,10 @@ int main()
     sys_init(&alpha, &g, &h, &u, &v, &w, &pk_frag);
 
     // KeyDist
-    element_t *r_, K0, K1, *K2_, *K3_;
+    element_t K0, K1, *K2_, *K3_;
     // int S[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
     int S[] = {0, 3, 4, 7};
-    key_dist(&r_, &K0, &K1, &K2_, &K3_, &alpha, &g, &h, &u, &v, &w, S, sizeof(S) / sizeof(S[0]));
+    key_dist(&K0, &K1, &K2_, &K3_, &alpha, &g, &h, &u, &v, &w, S, sizeof(S) / sizeof(S[0]));
 
     // PolicyInit
     char input[] = "(E)&&((((A)&&(B))||((C)&&(D)))||(((A)||(B))&&((C)||(D))))";
@@ -23,8 +23,9 @@ int main()
 
     // PolicyMod
 
+
     // Clear
-    rd_clear(&g, &h, &u, &v, &w, &alpha, &pk_frag, &K0, &K1, &M, &C, &C0, &K2_, &K3_, &r_, &C1_, &C2_, &C3_, sizeof(S) / sizeof(S[0]));
+    rd_clear(&g, &h, &u, &v, &w, &alpha, &pk_frag, &K0, &K1, &M, &C, &C0, &K2_, &K3_, &C1_, &C2_, &C3_, sizeof(S) / sizeof(S[0]));
 
     return 0;
 }

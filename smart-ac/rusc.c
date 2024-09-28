@@ -45,32 +45,32 @@ void sys_init(element_t *alpha, element_t *g, element_t *h, element_t *u, elemen
     // PK = (G, G_T, e, g, u, h, w, v, pk_frag)
 }
 
-void key_dist(element_t **r_, element_t *K0, element_t *K1, element_t **K2_, element_t **K3_, element_t *alpha, element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, int *S, int vert_S)
+void key_dist(element_t *K0, element_t *K1, element_t **K2_, element_t **K3_, element_t *alpha, element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, int *S, int vert_S)
 {
-    *r_ = (element_t *)malloc(sizeof(element_t) * (vert_S + 1));
+    element_t *r_ = (element_t *)malloc(sizeof(element_t) * (vert_S + 1));
     *K2_ = (element_t *)malloc(sizeof(element_t) * vert_S);
     *K3_ = (element_t *)malloc(sizeof(element_t) * vert_S);
 
-    element_init_Zr((*r_)[vert_S], pairing);
-    element_random((*r_)[vert_S]);
+    element_init_Zr(r_[vert_S], pairing);
+    element_random(r_[vert_S]);
     element_t neg_r, v2neg_r, i_mp;
     element_init_Zr(neg_r, pairing);
-    element_neg(neg_r, (*r_)[vert_S]);
+    element_neg(neg_r, r_[vert_S]);
     element_init_G1(v2neg_r, pairing);
     element_pow_zn(v2neg_r, *v, neg_r);
     element_init_Zr(i_mp, pairing);
 
     for (int i = 0; i < vert_S; i++)
     {
-        element_init_Zr((*r_)[i], pairing);
-        element_random((*r_)[i]);
+        element_init_Zr(r_[i], pairing);
+        element_random(r_[i]);
         element_init_G1((*K2_)[i], pairing);
-        element_pow_zn((*K2_)[i], *g, (*r_)[i]);
+        element_pow_zn((*K2_)[i], *g, r_[i]);
         element_init_G1((*K3_)[i], pairing);
         element_set_si(i_mp, S[i]);
         element_pow_zn((*K3_)[i], *u, i_mp);
         element_mul((*K3_)[i], (*K3_)[i], *h);
-        element_pow_zn((*K3_)[i], (*K3_)[i], (*r_)[i]);
+        element_pow_zn((*K3_)[i], (*K3_)[i], r_[i]);
         element_mul((*K3_)[i], (*K3_)[i], v2neg_r);
     }
 
@@ -79,14 +79,18 @@ void key_dist(element_t **r_, element_t *K0, element_t *K1, element_t **K2_, ele
     element_t tmp_exp;
     element_init_G1(tmp_exp, pairing);
     element_pow_zn(*K0, *g, *alpha);
-    element_pow_zn(tmp_exp, *w, (*r_)[vert_S]);
+    element_pow_zn(tmp_exp, *w, r_[vert_S]);
     element_mul(*K0, *K0, tmp_exp);
-    element_pow_zn(*K1, *g, (*r_)[vert_S]);
+    element_pow_zn(*K1, *g, r_[vert_S]);
 
     element_clear(neg_r);
     element_clear(v2neg_r);
     element_clear(i_mp);
     element_clear(tmp_exp);
+    for (int i = 0; i < vert_S + 1; i++)
+    {
+        element_clear(r_[i]);
+    }
 }
 void policy_init(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t *M, element_t **lambda_, element_t *g, element_t *h, element_t *pk_frag, element_t *u, element_t *v, element_t *w, char *input)
 {
@@ -203,7 +207,7 @@ void verify(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, eleme
     free_rdmat_f(omega);
 }
 
-void rd_clear(element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, element_t *alpha, element_t *pk_frag, element_t *K0, element_t *K1, element_t *M, element_t *C, element_t *C0, element_t **K2_, element_t **K3_, element_t **r_, element_t **C1_, element_t **C2_, element_t **C3_, int size_S)
+void rd_clear(element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, element_t *alpha, element_t *pk_frag, element_t *K0, element_t *K1, element_t *M, element_t *C, element_t *C0, element_t **K2_, element_t **K3_, element_t **C1_, element_t **C2_, element_t **C3_, int size_S)
 {
     element_clear(*g);
     element_clear(*h);
@@ -221,9 +225,7 @@ void rd_clear(element_t *g, element_t *h, element_t *u, element_t *v, element_t 
     {
         element_clear((*K2_)[i]);
         element_clear((*K3_)[i]);
-        element_clear((*r_)[i]);
     }
-    element_clear((*r_)[size_S]);
     for (int i = 0; i < W.rows; i++)
     {
         element_clear((*C1_)[i]);
