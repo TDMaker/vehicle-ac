@@ -5,6 +5,7 @@ pairing_t pairing;
 
 rdmat W;
 char **rho;
+int L = 0;
 
 int init_pairing()
 {
@@ -45,53 +46,6 @@ void sys_init(element_t *alpha, element_t *g, element_t *h, element_t *u, elemen
     // PK = (G, G_T, e, g, u, h, w, v, pk_frag)
 }
 
-void key_dist(element_t *K0, element_t *K1, element_t **K2_, element_t **K3_, element_t *alpha, element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, int *S, int vert_S)
-{
-    element_t *r_ = (element_t *)malloc(sizeof(element_t) * (vert_S + 1));
-    *K2_ = (element_t *)malloc(sizeof(element_t) * vert_S);
-    *K3_ = (element_t *)malloc(sizeof(element_t) * vert_S);
-
-    element_init_Zr(r_[vert_S], pairing);
-    element_random(r_[vert_S]);
-    element_t neg_r, v2neg_r, i_mp;
-    element_init_Zr(neg_r, pairing);
-    element_neg(neg_r, r_[vert_S]);
-    element_init_G1(v2neg_r, pairing);
-    element_pow_zn(v2neg_r, *v, neg_r);
-    element_init_Zr(i_mp, pairing);
-
-    for (int i = 0; i < vert_S; i++)
-    {
-        element_init_Zr(r_[i], pairing);
-        element_random(r_[i]);
-        element_init_G1((*K2_)[i], pairing);
-        element_pow_zn((*K2_)[i], *g, r_[i]);
-        element_init_G1((*K3_)[i], pairing);
-        element_set_si(i_mp, S[i]);
-        element_pow_zn((*K3_)[i], *u, i_mp);
-        element_mul((*K3_)[i], (*K3_)[i], *h);
-        element_pow_zn((*K3_)[i], (*K3_)[i], r_[i]);
-        element_mul((*K3_)[i], (*K3_)[i], v2neg_r);
-    }
-
-    element_init_G1(*K0, pairing);
-    element_init_G1(*K1, pairing);
-    element_t tmp_exp;
-    element_init_G1(tmp_exp, pairing);
-    element_pow_zn(*K0, *g, *alpha);
-    element_pow_zn(tmp_exp, *w, r_[vert_S]);
-    element_mul(*K0, *K0, tmp_exp);
-    element_pow_zn(*K1, *g, r_[vert_S]);
-
-    element_clear(neg_r);
-    element_clear(v2neg_r);
-    element_clear(i_mp);
-    element_clear(tmp_exp);
-    for (int i = 0; i < vert_S + 1; i++)
-    {
-        element_clear(r_[i]);
-    }
-}
 void policy_init(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t *M, element_t **lambda_, element_t *g, element_t *h, element_t *pk_frag, element_t *u, element_t *v, element_t *w, char *input)
 {
     TreeNode *root = get_complete_tree(input);
@@ -100,7 +54,7 @@ void policy_init(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, 
 
     element_init_GT(*M, pairing);
     element_random(*M);
-    int L = W.rows;
+    L = W.rows;
     printf("L is %d\n", L);
     rdmat_mp vec_v = make_rdmat_mp(L, 1);
     for (int i = 0; i < W.cols; i++)
@@ -155,9 +109,87 @@ void policy_init(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, 
     rd_free_tree(root);
 }
 
-void verify(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t *K0, element_t *K1, element_t **K2_, element_t **K3_, element_t *M, int *L, int vert_L)
+void key_dist(element_t *K0, element_t *K1, element_t **K2_, element_t **K3_, element_t *alpha, element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, char **my_attr, int my_attr_size)
 {
-    rdmat rows_picked = pick_rows(vert_L, W, L);
+    int S[1024] = {-1};
+    int vert_S = 0;
+    for (int i = 0; i < L; i++)
+    {
+        for (int j = 0; j < my_attr_size; j++)
+        {
+            if (strcmp(rho[i], my_attr[j]) == 0)
+            {
+                S[vert_S++] = i;
+            }
+        }
+    }
+    for (int i = 0; i < vert_S; i++)
+    {
+        printf("%d ", S[i]);
+    }
+    element_t *r_ = (element_t *)malloc(sizeof(element_t) * (vert_S + 1));
+    *K2_ = (element_t *)malloc(sizeof(element_t) * vert_S);
+    *K3_ = (element_t *)malloc(sizeof(element_t) * vert_S);
+
+    element_init_Zr(r_[vert_S], pairing);
+    element_random(r_[vert_S]);
+    element_t neg_r, v2neg_r, i_mp;
+    element_init_Zr(neg_r, pairing);
+    element_neg(neg_r, r_[vert_S]);
+    element_init_G1(v2neg_r, pairing);
+    element_pow_zn(v2neg_r, *v, neg_r);
+    element_init_Zr(i_mp, pairing);
+
+    for (int i = 0; i < vert_S; i++)
+    {
+        element_init_Zr(r_[i], pairing);
+        element_random(r_[i]);
+        element_init_G1((*K2_)[i], pairing);
+        element_pow_zn((*K2_)[i], *g, r_[i]);
+        element_init_G1((*K3_)[i], pairing);
+        element_set_si(i_mp, S[i]);
+        element_pow_zn((*K3_)[i], *u, i_mp);
+        element_mul((*K3_)[i], (*K3_)[i], *h);
+        element_pow_zn((*K3_)[i], (*K3_)[i], r_[i]);
+        element_mul((*K3_)[i], (*K3_)[i], v2neg_r);
+    }
+
+    element_init_G1(*K0, pairing);
+    element_init_G1(*K1, pairing);
+    element_t tmp_exp;
+    element_init_G1(tmp_exp, pairing);
+    element_pow_zn(*K0, *g, *alpha);
+    element_pow_zn(tmp_exp, *w, r_[vert_S]);
+    element_mul(*K0, *K0, tmp_exp);
+    element_pow_zn(*K1, *g, r_[vert_S]);
+
+    element_clear(neg_r);
+    element_clear(v2neg_r);
+    element_clear(i_mp);
+    element_clear(tmp_exp);
+    for (int i = 0; i < vert_S + 1; i++)
+    {
+        element_clear(r_[i]);
+    }
+}
+
+void verify(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t *K0, element_t *K1, element_t **K2_, element_t **K3_, element_t *M, char **my_attr, int my_attr_size)
+{
+
+    int S[1024] = {-1};
+    int vert_S = 0;
+    for (int i = 0; i < L; i++)
+    {
+        for (int j = 0; j < my_attr_size; j++)
+        {
+            if (strcmp(rho[i], my_attr[j]) == 0)
+            {
+                S[vert_S++] = i;
+            }
+        }
+    }
+
+    rdmat rows_picked = pick_rows(vert_S, W, S);
     rdmat_print("rows_picked", rows_picked);
 
     rdmat W_T = transpose(rows_picked);
@@ -172,12 +204,12 @@ void verify(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, eleme
     element_init_Zr(omega_mp, pairing);
     element_set1(B);
 
-    for (int i = 0; i < vert_L; i++)
+    for (int i = 0; i < vert_S; i++)
     {
-        pairing_apply(B_i, (*C1_)[L[i]], *K1, pairing);
-        pairing_apply(prod, (*C2_)[L[i]], (*K2_)[i], pairing);
+        pairing_apply(B_i, (*C1_)[S[i]], *K1, pairing);
+        pairing_apply(prod, (*C2_)[S[i]], (*K2_)[i], pairing);
         element_mul(B_i, B_i, prod);
-        pairing_apply(prod, (*C3_)[L[i]], (*K3_)[i], pairing);
+        pairing_apply(prod, (*C3_)[S[i]], (*K3_)[i], pairing);
         element_mul(B_i, B_i, prod);
 
         element_set_si(omega_mp, i >= omega.rows ? 0 : omega.elem[i]);
@@ -207,7 +239,7 @@ void verify(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, eleme
     free_rdmat_f(omega);
 }
 
-void rd_cleanup(element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, element_t *alpha, element_t *pk_frag, element_t *K0, element_t *K1, element_t **K2_, element_t **K3_, element_t *M, element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t **lambda_, int size_S)
+void rd_cleanup(element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, element_t *alpha, element_t *pk_frag, element_t *K0, element_t *K1, element_t **K2_, element_t **K3_, element_t *M, element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t **lambda_)
 {
     element_clear(*g);
     element_clear(*h);
@@ -221,12 +253,12 @@ void rd_cleanup(element_t *g, element_t *h, element_t *u, element_t *v, element_
     element_clear(*M);
     element_clear(*C);
     element_clear(*C0);
-    for (int i = 0; i < size_S; i++)
+    for (int i = 0; i < sizeof(*K2_) / sizeof((*K2_)[0]); i++)
     {
         element_clear((*K2_)[i]);
         element_clear((*K3_)[i]);
     }
-    for (int i = 0; i < W.rows; i++)
+    for (int i = 0; i < sizeof(*C1_) / sizeof((*C1_)[0]); i++)
     {
         element_clear((*C1_)[i]);
         element_clear((*C2_)[i]);
