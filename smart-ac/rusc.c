@@ -207,7 +207,7 @@ void verify(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, eleme
     free_rdmat_f(omega);
 }
 
-void rd_clear(element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, element_t *alpha, element_t *pk_frag, element_t *K0, element_t *K1, element_t *M, element_t *C, element_t *C0, element_t **K2_, element_t **K3_, element_t **C1_, element_t **C2_, element_t **C3_, int size_S)
+void rd_cleanup(element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, element_t *alpha, element_t *pk_frag, element_t *K0, element_t *K1, element_t **K2_, element_t **K3_, element_t *M, element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t **lambda_, int size_S)
 {
     element_clear(*g);
     element_clear(*h);
@@ -231,5 +231,6 @@ void rd_clear(element_t *g, element_t *h, element_t *u, element_t *v, element_t 
         element_clear((*C1_)[i]);
         element_clear((*C2_)[i]);
         element_clear((*C3_)[i]);
+        element_clear((*lambda_)[i]);
     }
 }

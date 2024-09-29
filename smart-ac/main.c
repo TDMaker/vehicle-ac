@@ -22,9 +22,8 @@ int main()
 
     // PolicyMod
 
-
     // Clear
-    rd_clear(&g, &h, &u, &v, &w, &alpha, &pk_frag, &K0, &K1, &M, &C, &C0, &K2_, &K3_, &C1_, &C2_, &C3_, sizeof(S) / sizeof(S[0]));
+    rd_cleanup(&g, &h, &u, &v, &w, &alpha, &pk_frag, &K0, &K1, &K2_, &K3_, &M, &C, &C0, &C1_, &C2_, &C3_, &lambda_, sizeof(S) / sizeof(S[0]));
 
     return 0;
 }
