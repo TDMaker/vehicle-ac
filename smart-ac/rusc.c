@@ -1,11 +1,10 @@
 #include "rusc.h"
 #define BUFFER_SIZE 1024
-char buffer[BUFFER_SIZE];
+static char buffer[BUFFER_SIZE];
 pairing_t pairing;
 
-rdmat W;
-char **rho;
-int L = 0;
+static rdmat W;
+static char **rho;
 
 int init_pairing()
 {
@@ -19,7 +18,7 @@ int init_pairing()
     return 0;
 }
 
-void sys_init(element_t *alpha, element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, element_t *pk_frag)
+void sys_init(element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, element_t *pk_frag, element_t *alpha)
 {
     if (init_pairing() == -1)
     {
@@ -42,11 +41,9 @@ void sys_init(element_t *alpha, element_t *g, element_t *h, element_t *u, elemen
     element_random(*alpha);
     pairing_apply(*pk_frag, *g, *g, pairing);
     element_pow_zn(*pk_frag, *pk_frag, *alpha);
-    // MK = \alpha
-    // PK = (G, G_T, e, g, u, h, w, v, pk_frag)
 }
 
-void policy_init(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t *M, element_t **lambda_, element_t *g, element_t *h, element_t *pk_frag, element_t *u, element_t *v, element_t *w, char *input)
+void policy_init(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t *M, element_t **lambda_, element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, element_t *pk_frag, char *input)
 {
     TreeNode *root = get_complete_tree(input);
     breadth_first_traversal(root, display);
@@ -54,7 +51,7 @@ void policy_init(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, 
 
     element_init_GT(*M, pairing);
     element_random(*M);
-    L = W.rows;
+    int L = W.rows;
     printf("L is %d\n", L);
     rdmat_mp vec_v = make_rdmat_mp(L, 1);
     for (int i = 0; i < W.cols; i++)
@@ -113,6 +110,7 @@ void key_dist(element_t *K0, element_t *K1, element_t **K2_, element_t **K3_, el
 {
     int S[1024] = {-1};
     int vert_S = 0;
+    int L = W.rows;
     for (int i = 0; i < L; i++)
     {
         for (int j = 0; j < my_attr_size; j++)
@@ -178,6 +176,7 @@ void verify(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, eleme
 
     int S[1024] = {-1};
     int vert_S = 0;
+    int L = W.rows;
     for (int i = 0; i < L; i++)
     {
         for (int j = 0; j < my_attr_size; j++)
