@@ -1,10 +1,7 @@
 #include "rusc.h"
 #define BUFFER_SIZE 1024
 static char buffer[BUFFER_SIZE];
-pairing_t pairing;
-
-static rdmat W;
-static char **rho;
+pairing_t pairing; // Pairing that should be in PK is placed in global scope so that it can be linked correctly by other compiled modules.
 
 int init_pairing()
 {
@@ -18,48 +15,50 @@ int init_pairing()
     return 0;
 }
 
-void sys_init(element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, element_t *pk_frag, element_t *alpha)
+void sys_init(PK *pk, MK *mk)
 {
     if (init_pairing() == -1)
     {
         puts("Pairing inits failed!\n");
         exit(-1);
     }
-    element_init_G1(*g, pairing);
-    element_init_G1(*u, pairing);
-    element_init_G1(*h, pairing);
-    element_init_G1(*w, pairing);
-    element_init_G1(*v, pairing);
-    element_init_Zr(*alpha, pairing);
-    element_init_GT(*pk_frag, pairing); // pk_frag = e(g,g)^\alpha
+    element_init_G1(pk->g, pairing);
+    element_init_G1(pk->h, pairing);
+    element_init_G1(pk->u, pairing);
+    element_init_G1(pk->v, pairing);
+    element_init_G1(pk->w, pairing);
+    element_init_GT(pk->frag, pairing); // pk->frag = e(g,g)^\alpha
+    element_init_Zr(*mk, pairing);
 
-    element_random(*g);
-    element_random(*u);
-    element_random(*h);
-    element_random(*w);
-    element_random(*v);
-    element_random(*alpha);
-    pairing_apply(*pk_frag, *g, *g, pairing);
-    element_pow_zn(*pk_frag, *pk_frag, *alpha);
+    element_random(pk->g);
+    element_random(pk->h);
+    element_random(pk->u);
+    element_random(pk->v);
+    element_random(pk->w);
+    element_random(*mk);
+    pairing_apply(pk->frag, pk->g, pk->g, pairing);
+    element_pow_zn(pk->frag, pk->frag, *mk);
 }
-
-void policy_init(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t *M, element_t **lambda_, element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, element_t *pk_frag, char *input)
+void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
 {
-    TreeNode *root = get_complete_tree(input);
+    TreeNode *root = get_complete_tree(pp);
     breadth_first_traversal(root, display);
-    get_W_rho(&W, &rho, root);
+    get_W_rho(&(ev->W), &(ev->rho.data), root);
+    ev->rho.len = ev->W.rows;
 
-    element_init_GT(*M, pairing);
-    element_random(*M);
-    int L = W.rows;
+    element_t m;
+    element_init_GT(m, pairing);
+    element_from_hash(m, _m, strlen(_m));
+    int L = ev->W.rows;
     printf("L is %d\n", L);
     rdmat_mp vec_v = make_rdmat_mp(L, 1);
-    for (int i = 0; i < W.cols; i++)
+    for (int i = 0; i < ev->W.cols; i++)
     {
         element_random(vec_v.elem[i]);
     }
 
-    *lambda_ = rdmat_mul_sp_mp(W, vec_v).elem;
+    ip->lambda = rdmat_mul_sp_mp(ev->W, vec_v).elem;
+    ip->W = ev->W;
     rdmat_mp t_ = make_rdmat_mp(1, L);
     for (int i = 0; i < L; i++)
     {
@@ -71,124 +70,111 @@ void policy_init(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, 
     element_init_Zr(tmp2, pairing);
     element_init_GT(tmp3, pairing);
 
-    element_init_GT(*C, pairing);
-    element_pow_zn(tmp3, *pk_frag, vec_v.elem[0]);
-    element_mul(*C, *M, tmp3);
+    element_init_GT(ev->C, pairing);
+    element_pow_zn(tmp3, pk.frag, vec_v.elem[0]);
+    element_mul(ev->C, m, tmp3);
 
-    element_init_G1(*C0, pairing);
-    element_pow_zn(*C0, *g, vec_v.elem[0]);
-    *C1_ = (element_t *)malloc(sizeof(element_t) * L);
-    *C2_ = (element_t *)malloc(sizeof(element_t) * L);
-    *C3_ = (element_t *)malloc(sizeof(element_t) * L);
+    element_init_G1(ev->C0, pairing);
+    element_pow_zn(ev->C0, pk.g, vec_v.elem[0]);
+    ev->C1_ = (element_t *)malloc(sizeof(element_t) * L);
+    ev->C2_ = (element_t *)malloc(sizeof(element_t) * L);
+    ev->C3_ = (element_t *)malloc(sizeof(element_t) * L);
     for (int i = 0; i < L; i++)
     {
-        element_init_G1((*C1_)[i], pairing);
-        element_pow_zn((*C1_)[i], *w, (*lambda_)[i]);
-        element_pow_zn(tmp1, *v, t_.elem[i]);
-        element_mul((*C1_)[i], (*C1_)[i], tmp1);
+        element_init_G1(ev->C1_[i], pairing);
+        element_pow_zn(ev->C1_[i], pk.w, ip->lambda[i]);
+        element_pow_zn(tmp1, pk.v, t_.elem[i]);
+        element_mul(ev->C1_[i], ev->C1_[i], tmp1);
 
-        element_init_G1((*C2_)[i], pairing);
+        element_init_G1(ev->C2_[i], pairing);
         element_set_si(tmp2, i);
-        element_pow_zn((*C2_)[i], *u, tmp2);
-        element_mul((*C2_)[i], (*C2_)[i], *h);
+        element_pow_zn(ev->C2_[i], pk.u, tmp2);
+        element_mul(ev->C2_[i], ev->C2_[i], pk.h);
         element_neg(tmp2, t_.elem[i]);
-        element_pow_zn((*C2_)[i], (*C2_)[i], tmp2);
+        element_pow_zn(ev->C2_[i], ev->C2_[i], tmp2);
 
-        element_init_G1((*C3_)[i], pairing);
-        element_pow_zn((*C3_)[i], *g, t_.elem[i]);
+        element_init_G1(ev->C3_[i], pairing);
+        element_pow_zn(ev->C3_[i], pk.g, t_.elem[i]);
     }
 
     element_clear(tmp1);
     element_clear(tmp2);
     element_clear(tmp3);
+    element_clear(m);
     free_rdmat_mp(vec_v);
     free_rdmat_mp(t_);
     rd_free_tree(root);
 }
-
-void key_dist(element_t *K0, element_t *K1, element_t **K2_, element_t **K3_, element_t *alpha, element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, char **my_attr, int my_attr_size)
+void key_dist(SK *sk, PK pk, MK mk, RHO rho, char **s, int my_attr_size)
 {
     int S[1024] = {-1};
-    int vert_S = 0;
-    int L = W.rows;
-    for (int i = 0; i < L; i++)
+    sk->len_s = 0;
+    for (int i = 0; i < rho.len; i++)
     {
         for (int j = 0; j < my_attr_size; j++)
         {
-            if (strcmp(rho[i], my_attr[j]) == 0)
+            if (strcmp(rho.data[i], s[j]) == 0)
             {
-                S[vert_S++] = i;
+                S[sk->len_s++] = i;
             }
         }
     }
-    for (int i = 0; i < vert_S; i++)
-    {
-        printf("%d ", S[i]);
-    }
-    element_t *r_ = (element_t *)malloc(sizeof(element_t) * (vert_S + 1));
-    *K2_ = (element_t *)malloc(sizeof(element_t) * vert_S);
-    *K3_ = (element_t *)malloc(sizeof(element_t) * vert_S);
+    sk->s = (int *)malloc(sizeof(int) * sk->len_s);
+    memcpy(sk->s, S, sizeof(int) * sk->len_s);
 
-    element_init_Zr(r_[vert_S], pairing);
-    element_random(r_[vert_S]);
+    element_t *r_ = (element_t *)malloc(sizeof(element_t) * (sk->len_s + 1));
+    sk->K2_ = (element_t *)malloc(sizeof(element_t) * sk->len_s);
+    sk->K3_ = (element_t *)malloc(sizeof(element_t) * sk->len_s);
+
+    element_init_Zr(r_[sk->len_s], pairing);
+    element_random(r_[sk->len_s]);
     element_t neg_r, v2neg_r, i_mp;
     element_init_Zr(neg_r, pairing);
-    element_neg(neg_r, r_[vert_S]);
+    element_neg(neg_r, r_[sk->len_s]);
     element_init_G1(v2neg_r, pairing);
-    element_pow_zn(v2neg_r, *v, neg_r);
+    element_pow_zn(v2neg_r, pk.v, neg_r);
     element_init_Zr(i_mp, pairing);
 
-    for (int i = 0; i < vert_S; i++)
+    for (int i = 0; i < sk->len_s; i++)
     {
         element_init_Zr(r_[i], pairing);
         element_random(r_[i]);
-        element_init_G1((*K2_)[i], pairing);
-        element_pow_zn((*K2_)[i], *g, r_[i]);
-        element_init_G1((*K3_)[i], pairing);
+        element_init_G1(sk->K2_[i], pairing);
+        element_pow_zn(sk->K2_[i], pk.g, r_[i]);
+        element_init_G1(sk->K3_[i], pairing);
         element_set_si(i_mp, S[i]);
-        element_pow_zn((*K3_)[i], *u, i_mp);
-        element_mul((*K3_)[i], (*K3_)[i], *h);
-        element_pow_zn((*K3_)[i], (*K3_)[i], r_[i]);
-        element_mul((*K3_)[i], (*K3_)[i], v2neg_r);
+        element_pow_zn(sk->K3_[i], pk.u, i_mp);
+        element_mul(sk->K3_[i], sk->K3_[i], pk.h);
+        element_pow_zn(sk->K3_[i], sk->K3_[i], r_[i]);
+        element_mul(sk->K3_[i], sk->K3_[i], v2neg_r);
     }
 
-    element_init_G1(*K0, pairing);
-    element_init_G1(*K1, pairing);
+    element_init_G1(sk->K0, pairing);
+    element_init_G1(sk->K1, pairing);
     element_t tmp_exp;
     element_init_G1(tmp_exp, pairing);
-    element_pow_zn(*K0, *g, *alpha);
-    element_pow_zn(tmp_exp, *w, r_[vert_S]);
-    element_mul(*K0, *K0, tmp_exp);
-    element_pow_zn(*K1, *g, r_[vert_S]);
+    element_pow_zn(sk->K0, pk.g, mk);
+    element_pow_zn(tmp_exp, pk.w, r_[sk->len_s]);
+    element_mul(sk->K0, sk->K0, tmp_exp);
+    element_pow_zn(sk->K1, pk.g, r_[sk->len_s]);
 
     element_clear(neg_r);
     element_clear(v2neg_r);
     element_clear(i_mp);
     element_clear(tmp_exp);
-    for (int i = 0; i < vert_S + 1; i++)
+    for (int i = 0; i < sk->len_s + 1; i++)
     {
         element_clear(r_[i]);
     }
+    free(r_);
 }
-
-void verify(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t *K0, element_t *K1, element_t **K2_, element_t **K3_, element_t *M, char **my_attr, int my_attr_size)
+int verify(char *_m, EV ev, SK sk)
 {
+    element_t m;
+    element_init_GT(m, pairing);
+    element_from_hash(m, _m, strlen(_m));
 
-    int S[1024] = {-1};
-    int vert_S = 0;
-    int L = W.rows;
-    for (int i = 0; i < L; i++)
-    {
-        for (int j = 0; j < my_attr_size; j++)
-        {
-            if (strcmp(rho[i], my_attr[j]) == 0)
-            {
-                S[vert_S++] = i;
-            }
-        }
-    }
-
-    rdmat rows_picked = pick_rows(vert_S, W, S);
+    rdmat rows_picked = pick_rows(sk.len_s, ev.W, sk.s);
     rdmat_print("rows_picked", rows_picked);
 
     rdmat W_T = transpose(rows_picked);
@@ -203,12 +189,12 @@ void verify(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, eleme
     element_init_Zr(omega_mp, pairing);
     element_set1(B);
 
-    for (int i = 0; i < vert_S; i++)
+    for (int i = 0; i < sk.len_s; i++)
     {
-        pairing_apply(B_i, (*C1_)[S[i]], *K1, pairing);
-        pairing_apply(prod, (*C2_)[S[i]], (*K2_)[i], pairing);
+        pairing_apply(B_i, ev.C1_[sk.s[i]], sk.K1, pairing);
+        pairing_apply(prod, ev.C2_[sk.s[i]], sk.K2_[i], pairing);
         element_mul(B_i, B_i, prod);
-        pairing_apply(prod, (*C3_)[S[i]], (*K3_)[i], pairing);
+        pairing_apply(prod, ev.C3_[sk.s[i]], sk.K3_[i], pairing);
         element_mul(B_i, B_i, prod);
 
         element_set_si(omega_mp, i >= omega.rows ? 0 : omega.elem[i]);
@@ -216,60 +202,72 @@ void verify(element_t *C, element_t *C0, element_t **C1_, element_t **C2_, eleme
         element_mul(B, B, B_i);
     }
 
-    element_mul(B, B, *C);
-    pairing_apply(prod, *C0, *K0, pairing);
-    element_mul(prod, *M, prod);
+    element_mul(B, B, ev.C);
+    pairing_apply(prod, ev.C0, sk.K0, pairing);
+    element_mul(prod, m, prod);
 
-    if (!element_cmp(B, prod))
-    {
-        puts("Decryption succeed.\n");
-    }
-    else
-    {
-        puts("Decryption faild!\n");
-    }
+    int result = !element_cmp(B, prod);
 
     element_clear(B_i);
     element_clear(prod);
     element_clear(B);
     element_clear(omega_mp);
+    element_clear(m);
     free_rdmat(rows_picked);
     free_rdmat(W_T);
     free_rdmat_f(omega);
+    return result;
 }
-
-void rd_cleanup(element_t *g, element_t *h, element_t *u, element_t *v, element_t *w, element_t *alpha, element_t *pk_frag, element_t *K0, element_t *K1, element_t **K2_, element_t **K3_, element_t *M, element_t *C, element_t *C0, element_t **C1_, element_t **C2_, element_t **C3_, element_t **lambda_)
+void rd_cleanup(PK *pk, MK *mk, SK *sk, EV *ev, IP *ip)
 {
-    element_clear(*g);
-    element_clear(*h);
-    element_clear(*u);
-    element_clear(*v);
-    element_clear(*w);
-    element_clear(*alpha);
-    element_clear(*pk_frag);
-    element_clear(*K0);
-    element_clear(*K1);
-    element_clear(*M);
-    element_clear(*C);
-    element_clear(*C0);
-    for (int i = 0; i < sizeof(*K2_) / sizeof((*K2_)[0]); i++)
+    element_clear(pk->g);
+    element_clear(pk->h);
+    element_clear(pk->u);
+    element_clear(pk->v);
+    element_clear(pk->w);
+    element_clear(*mk);
+    element_clear(pk->frag);
+    element_clear(sk->K0);
+    element_clear(sk->K1);
+    element_clear(ev->C);
+    element_clear(ev->C0);
+    free_rdmat(ev->W);
+    for (int i = 0; i < ev->rho.len; i++)
     {
-        element_clear((*K2_)[i]);
-        element_clear((*K3_)[i]);
+        free(ev->rho.data[i]);
     }
-    for (int i = 0; i < sizeof(*C1_) / sizeof((*C1_)[0]); i++)
+    free(ev->rho.data);
+    for (int i = 0; i < sizeof(sk->K2_) / sizeof(sk->K2_[0]); i++)
     {
-        element_clear((*C1_)[i]);
-        element_clear((*C2_)[i]);
-        element_clear((*C3_)[i]);
-        element_clear((*lambda_)[i]);
+        element_clear(sk->K2_[i]);
+        element_clear(sk->K3_[i]);
     }
+    free(sk->s);
+    free(sk->K2_);
+    free(sk->K3_);
+    for (int i = 0; i < sizeof(ev->C1_) / sizeof(ev->C1_[0]); i++)
+    {
+        element_clear(ev->C1_[i]);
+        element_clear(ev->C2_[i]);
+        element_clear(ev->C3_[i]);
+        element_clear(ip->lambda[i]);
+    }
+    free(ev->C1_);
+    free(ev->C2_);
+    free(ev->C3_);
+    free(ip->lambda);
+
+    pairing_clear(pairing);
 }
 State transition(State state, Label label);
-void policy_mod()
+void policy_mod(UEV *uev, IP *ip_new, PK pk, IP ip, char *pp_new)
 {
     State new = transition(STATE_START, LABEL_ADD);
     printf("%d\n", new);
+}
+
+void evidence_mod(EV *ev_new, EV ev, UEV uev)
+{
 }
 
 State transition(State state, Label label)

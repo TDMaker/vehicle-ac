@@ -24,6 +24,13 @@
         "vector": "c",
         "rusc.h": "c",
         "pbc.h": "c",
-        "utils.h": "c"
+        "utils.h": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "__hash_table": "c",
+        "__split_buffer": "c",
+        "queue": "c",
+        "string": "c",
+        "unordered_map": "c"
     }
 }
