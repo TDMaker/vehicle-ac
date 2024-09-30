@@ -265,3 +265,42 @@ void rd_cleanup(element_t *g, element_t *h, element_t *u, element_t *v, element_
         element_clear((*lambda_)[i]);
     }
 }
+State transition(State state, Label label);
+void policy_mod()
+{
+    State new = transition(STATE_START, LABEL_ADD);
+    printf("%d\n", new);
+}
+
+State transition(State state, Label label)
+{
+    switch (state + label)
+    {
+    case STATE_START + LABEL_ADD:
+        return STATE_ADD;
+    case STATE_START + LABEL_DELETE:
+        return STATE_DELETE;
+    case STATE_START + LABEL_MULTIPLY:
+        return STATE_MULTIPLY;
+    case STATE_ADD + LABEL_MULTIPLY:
+        return STATE_MULTIPLY;
+    case STATE_ADD + LABEL_DELETE:
+        return STATE_DELETE;
+    case STATE_MULTIPLY + LABEL_MULTIPLY:
+        return STATE_MULTIPLY;
+    case STATE_MULTIPLY + LABEL_DELETE:
+        return STATE_DELETE;
+    case STATE_DELETE + LABEL_ADD:
+        return STATE_ADD_;
+    case STATE_ADD_ + LABEL_DELETE:
+        return STATE_DELETE;
+    case STATE_ADD_ + LABEL_MULTIPLY:
+        return STATE_MULTIPLY_;
+    case STATE_MULTIPLY_ + LABEL_MULTIPLY:
+        return STATE_MULTIPLY_;
+    case STATE_MULTIPLY_ + LABEL_DELETE:
+        return STATE_DELETE;
+    default:
+        return STATE_UNKNOWN;
+    }
+}

@@ -31,7 +31,8 @@ int main()
      */
     verify(&C, &C0, &C1_, &C2_, &C3_, &K0, &K1, &K2_, &K3_, &M, my_attr1, sizeof(my_attr1) / sizeof(my_attr1[0]));
 
-    // PolicyMod
+    policy_mod();
+
 
     // Clear
     rd_cleanup(&g, &h, &u, &v, &w, &alpha, &pk_frag, &K0, &K1, &K2_, &K3_, &M, &C, &C0, &C1_, &C2_, &C3_, &lambda_);
