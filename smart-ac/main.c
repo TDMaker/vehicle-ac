@@ -12,9 +12,9 @@ int main()
      * PolicyInit(PK,M,PP)→{EV,IP}
      */
     char *PP = "(E)&&((((A)&&(B))||((C)&&(D)))||(((A)||(B))&&((C)||(D))))";
+    char *M = "1234567890";
     EV ev;
     IP ip;
-    char *M = "1234567890";
     policy_init(&ev, &ip, pk, M, PP);
 
     /**
@@ -40,8 +40,8 @@ int main()
      * PolicyMod(PK,IP_cur,PP_new)→{UEV,IP_new}
      */
     char *PP_new = "(E)&&((((A)&&(B))||((C)&&(D)))||(((A)||(B))&&((C)||(D))))";
-    IP ip_new;
     UEV uev;
+    IP ip_new;
     policy_mod(&uev, &ip_new, pk, ip, PP_new);
 
     /**

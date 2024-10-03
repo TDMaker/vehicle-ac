@@ -5,7 +5,7 @@ int curr_row = 0;
 int *tmp_elem;
 char **tmp_rho;
 
-void set_childrens_vec(TreeNode *node)
+void set_childrens_vec(TreeNode *node, void *data)
 {
     // printf("pointer is %p, value is %s, counter is %d.\n", node, node->value, counter);
     if (strcmp(node->value, "&&") == 0)
@@ -13,45 +13,45 @@ void set_childrens_vec(TreeNode *node)
         counter++;
         node->left->vec = make_rdvec();
         node->right->vec = make_rdvec();
-        (*node->right->vec).length = (*node->left->vec).length = counter;
-        memcpy(node->right->vec->data, node->vec->data, sizeof(int) * counter);
-        node->right->vec->data[counter - 1] = 1;
-        node->left->vec->data[counter - 1] = -1;
+        node->right->vec.length = node->left->vec.length = counter;
+        memcpy(node->right->vec.data, node->vec.data, sizeof(int) * counter);
+        node->right->vec.data[counter - 1] = 1;
+        node->left->vec.data[counter - 1] = -1;
     }
     else if (strcmp(node->value, "||") == 0)
     {
         node->left->vec = make_rdvec();
         node->right->vec = make_rdvec();
-        int parent_length = (*node->vec).length;
-        (*node->right->vec).length = (*node->left->vec).length = parent_length;
-        memcpy(node->left->vec->data, node->vec->data, sizeof(int) * parent_length);
-        memcpy(node->right->vec->data, node->vec->data, sizeof(int) * parent_length);
+        int parent_length = node->vec.length;
+        node->right->vec.length = node->left->vec.length = parent_length;
+        memcpy(node->left->vec.data, node->vec.data, sizeof(int) * parent_length);
+        memcpy(node->right->vec.data, node->vec.data, sizeof(int) * parent_length);
     }
 }
-void pad_0s(TreeNode *node)
+void pad_0s(TreeNode *node, void *data)
 {
     int length_set = counter;
     if (strcmp(node->value, "||") && strcmp(node->value, "&&"))
     {
-        int gap = length_set - (*node->vec).length;
-        for (int i = (*node->vec).length; i < length_set; i++)
+        int gap = length_set - node->vec.length;
+        for (int i = node->vec.length; i < length_set; i++)
         {
-            node->vec->data[i] = 0;
+            node->vec.data[i] = 0;
         }
-        (*node->vec).length = length_set;
+        node->vec.length = length_set;
         rows++;
     }
 }
 
-void display(TreeNode *node)
+void display(TreeNode *node, void *data)
 {
     // printf("the node's addr is %p, value is %s\n", node, node->value);
     if (strcmp(node->value, "||") && strcmp(node->value, "&&"))
     {
         printf("%s: [", node->value);
-        for (int i = 0; i < (*node->vec).length; i++)
+        for (int i = 0; i < node->vec.length; i++)
         {
-            printf("%2d ", node->vec->data[i]);
+            printf("%2d ", node->vec.data[i]);
         }
         puts("]");
     }
@@ -61,30 +61,31 @@ TreeNode *get_complete_tree(char *input)
 {
     TreeNode *root = get_root(input);
     root->vec = make_rdvec();
-    root->vec->data[0] = 1;
-    (*root->vec).length = 1;
-    breadth_first_traversal(root, set_childrens_vec);
-    breadth_first_traversal(root, pad_0s);
+    root->vec.data[0] = 1;
+    root->vec.length = 1;
+    root->parent = NULL;
+    breadth_first_traversal(root, set_childrens_vec, NULL);
+    breadth_first_traversal(root, pad_0s, NULL);
     return root;
 }
 
 void get_W_rho(rdmat *W, char ***rho, TreeNode *root)
 {
     printf("rows = %d, cols = %d\n", rows, counter);
-    (*W).cols = counter;
-    (*W).rows = rows;
+    W->cols = counter;
+    W->rows = rows;
     tmp_elem = (int *)calloc(sizeof(int), rows * counter);
     tmp_rho = (char **)malloc(sizeof(char *) * rows);
-    breadth_first_traversal(root, rdmat_row_concat);
+    breadth_first_traversal(root, rdmat_row_concat, NULL);
     W->elem = tmp_elem;
     *rho = tmp_rho;
 }
 
-void rdmat_row_concat(TreeNode *node)
+void rdmat_row_concat(TreeNode *node, void *data)
 {
     if (strcmp(node->value, "||") && strcmp(node->value, "&&"))
     {
-        memcpy(tmp_elem + curr_row * counter, node->vec->data, counter * sizeof(int));
+        memcpy(tmp_elem + curr_row * counter, node->vec.data, counter * sizeof(int));
         tmp_rho[curr_row] = strdup(node->value);
         curr_row++;
     }

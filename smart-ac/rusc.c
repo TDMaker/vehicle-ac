@@ -2,6 +2,39 @@
 #define BUFFER_SIZE 1024
 static char buffer[BUFFER_SIZE];
 pairing_t pairing; // Pairing that should be in PK is placed in global scope so that it can be linked correctly by other compiled modules.
+TreeNode *root;
+State transition(State state, Label label)
+{
+    switch (state + label)
+    {
+    case STATE_START + LABEL_ADD:
+        return STATE_ADD;
+    case STATE_START + LABEL_DELETE:
+        return STATE_DELETE;
+    case STATE_START + LABEL_MULTIPLY:
+        return STATE_MULTIPLY;
+    case STATE_ADD + LABEL_MULTIPLY:
+        return STATE_MULTIPLY;
+    case STATE_ADD + LABEL_DELETE:
+        return STATE_DELETE;
+    case STATE_MULTIPLY + LABEL_MULTIPLY:
+        return STATE_MULTIPLY;
+    case STATE_MULTIPLY + LABEL_DELETE:
+        return STATE_DELETE;
+    case STATE_DELETE + LABEL_ADD:
+        return STATE_ADD_;
+    case STATE_ADD_ + LABEL_DELETE:
+        return STATE_DELETE;
+    case STATE_ADD_ + LABEL_MULTIPLY:
+        return STATE_MULTIPLY_;
+    case STATE_MULTIPLY_ + LABEL_MULTIPLY:
+        return STATE_MULTIPLY_;
+    case STATE_MULTIPLY_ + LABEL_DELETE:
+        return STATE_DELETE;
+    default:
+        return STATE_UNKNOWN;
+    }
+}
 
 int init_pairing()
 {
@@ -41,8 +74,8 @@ void sys_init(PK *pk, MK *mk)
 }
 void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
 {
-    TreeNode *root = get_complete_tree(pp);
-    breadth_first_traversal(root, display);
+    root = get_complete_tree(pp);
+    breadth_first_traversal(root, display, NULL);
     get_W_rho(&(ev->W), &(ev->rho.data), root);
     ev->rho.len = ev->W.rows;
 
@@ -103,7 +136,7 @@ void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
     element_clear(m);
     free_rdmat_mp(vec_v);
     free_rdmat_mp(t_);
-    rd_free_tree(root);
+    // rd_free_tree(root);
 }
 void key_dist(SK *sk, PK pk, MK mk, RHO rho, char **s, int my_attr_size)
 {
@@ -259,46 +292,87 @@ void rd_cleanup(PK *pk, MK *mk, SK *sk, EV *ev, IP *ip)
 
     pairing_clear(pairing);
 }
-State transition(State state, Label label);
+
 void policy_mod(UEV *uev, IP *ip_new, PK pk, IP ip, char *pp_new)
 {
     State new = transition(STATE_START, LABEL_ADD);
     printf("%d\n", new);
+    breadth_first_traversal(root, add_or, "F");
 }
 
 void evidence_mod(EV *ev_new, EV ev, UEV uev)
 {
 }
 
-State transition(State state, Label label)
+void del_or(TreeNode *node, void *data)
 {
-    switch (state + label)
+    char *value = (char *)data;
+    if (strcmp(node->value, value) == 0 && strcmp(node->parent->value, "||") == 0)
     {
-    case STATE_START + LABEL_ADD:
-        return STATE_ADD;
-    case STATE_START + LABEL_DELETE:
-        return STATE_DELETE;
-    case STATE_START + LABEL_MULTIPLY:
-        return STATE_MULTIPLY;
-    case STATE_ADD + LABEL_MULTIPLY:
-        return STATE_MULTIPLY;
-    case STATE_ADD + LABEL_DELETE:
-        return STATE_DELETE;
-    case STATE_MULTIPLY + LABEL_MULTIPLY:
-        return STATE_MULTIPLY;
-    case STATE_MULTIPLY + LABEL_DELETE:
-        return STATE_DELETE;
-    case STATE_DELETE + LABEL_ADD:
-        return STATE_ADD_;
-    case STATE_ADD_ + LABEL_DELETE:
-        return STATE_DELETE;
-    case STATE_ADD_ + LABEL_MULTIPLY:
-        return STATE_MULTIPLY_;
-    case STATE_MULTIPLY_ + LABEL_MULTIPLY:
-        return STATE_MULTIPLY_;
-    case STATE_MULTIPLY_ + LABEL_DELETE:
-        return STATE_DELETE;
-    default:
-        return STATE_UNKNOWN;
+        TreeNode *silbling = node->parent->left == node ? node->parent->right : node->parent->left;
+        strcpy(node->parent->value, silbling->value);
+        silbling->parent->left = silbling->left;
+        silbling->parent->right = silbling->right;
+        free_rdvec(silbling->vec);
+        free(silbling);
+        free_rdvec(node->vec);
+        free(node);
     }
+}
+
+void del_and(TreeNode *node, void *data)
+{
+    char *value = (char *)data;
+    if (strcmp(node->value, value) == 0 && strcmp(node->parent->value, "&&") == 0)
+    {
+        TreeNode *silbling = node->parent->left == node ? node->parent->right : node->parent->left;
+        for (int i = 0; i < silbling->vec.length; i++)
+        {
+            silbling->vec.data[i] += node->vec.data[i];
+        }
+        strcpy(silbling->parent->value, silbling->value);
+        free_rdvec(silbling->parent->vec);
+        silbling->parent->vec = silbling->vec;
+        silbling->parent->left = silbling->left;
+        silbling->parent->right = silbling->right;
+        free(silbling);
+        free_rdvec(node->vec);
+        free(node);
+    }
+}
+
+void add_or(TreeNode *silbling, void *data) // 我要选择跟谁做兄弟
+{
+    TreeNode *new_silbling = (TreeNode *)malloc(sizeof(TreeNode));
+    memcpy(new_silbling, silbling, sizeof(TreeNode));
+    silbling->left = new_silbling;
+    new_silbling->parent = silbling;
+    new_silbling->vec = cpy_rdvec(silbling->vec);
+    strcmp(silbling->value, "||");
+    silbling->right = (TreeNode *)malloc(sizeof(TreeNode));
+    silbling->right->parent = silbling;
+    strcmp(silbling->right->value, "D");
+    silbling->right->left = NULL;
+    silbling->right->right = NULL;
+    silbling->right->vec = cpy_rdvec(new_silbling->vec);
+}
+
+void add_and(TreeNode *silbling, void *data)
+{
+    TreeNode *new_silbling = (TreeNode *)malloc(sizeof(TreeNode));
+    memcpy(new_silbling, silbling, sizeof(TreeNode));
+    silbling->left = new_silbling;
+    new_silbling->parent = silbling;
+    new_silbling->vec = cpy_rdvec(silbling->vec);
+    new_silbling->vec.data[new_silbling->vec.length] = 1;
+    new_silbling->vec.length++;
+    strcmp(silbling->value, "&&");
+    silbling->right = (TreeNode *)malloc(sizeof(TreeNode));
+    silbling->right->parent = silbling;
+    strcmp(silbling->right->value, "D");
+    silbling->right->left = NULL;
+    silbling->right->right = NULL;
+    silbling->right->vec = make_rdvec();
+    silbling->right->vec.length = silbling->left->vec.length;
+    silbling->right->vec.data[silbling->right->vec.length - 1] = -1;
 }

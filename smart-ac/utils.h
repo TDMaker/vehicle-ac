@@ -3,6 +3,14 @@
 #include <math.h>
 #include <string.h>
 #include <pbc/pbc.h>
+
+#define CAPACITY 1024
+typedef struct
+{
+    int *data;
+    int length;
+} rdvec;
+
 typedef struct
 {
     int *elem;
@@ -22,6 +30,9 @@ typedef struct
     element_t *elem;
 } rdmat_mp;
 
+
+rdvec make_rdvec();
+rdvec cpy_rdvec(rdvec a);
 rdmat make_rdmat(int rows, int cols);
 rdmat_f make_rdmat_f(int rows, int cols);
 rdmat_mp make_rdmat_mp(int rows, int cols);
@@ -32,6 +43,7 @@ rdmat_f gaussian_elimination(rdmat a);
 rdmat transpose(rdmat a);
 void rdmat_print(const char *name, rdmat a);
 void rdmat_f_print(const char *name, rdmat_f a);
+void free_rdvec(rdvec a);
 void free_rdmat(rdmat a);
 void free_rdmat_f(rdmat_f a);
 void free_rdmat_mp(rdmat_mp a);

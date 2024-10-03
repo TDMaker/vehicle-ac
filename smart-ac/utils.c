@@ -1,5 +1,4 @@
 #include "utils.h"
-
 extern pairing_t pairing;
 
 rdmat_mp make_rdmat_mp(int rows, int cols)
@@ -286,4 +285,33 @@ rdmat transpose(rdmat a)
         }
     }
     return c;
+}
+
+rdvec make_rdvec()
+{
+    rdvec tmp = {.length = 1, .data = (int *)calloc(sizeof(int), CAPACITY)};
+
+    if (tmp.data == NULL)
+    {
+        puts("calloc failed, exiting...");
+        exit(-1);
+    }
+    return tmp;
+}
+
+void free_rdvec(rdvec a)
+{
+    free(a.data);
+}
+
+rdvec cpy_rdvec(rdvec a)
+{
+    rdvec tmp = {.length = a.length, .data = (int *)calloc(sizeof(int), CAPACITY)};
+    if (tmp.data == NULL)
+    {
+        puts("calloc failed, exiting...");
+        exit(-1);
+    }
+    memcpy(tmp.data, a.data, sizeof(int) * CAPACITY);
+    return tmp;
 }

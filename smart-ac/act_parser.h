@@ -6,12 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "utils.h"
 
-typedef struct
-{
-    int *data;
-    int length;
-} rdvec;
 // 定义 TokenType 枚举
 typedef enum
 {
@@ -36,7 +32,8 @@ typedef struct TreeNode
     char value[64];
     struct TreeNode *left;
     struct TreeNode *right;
-    rdvec *vec;
+    struct TreeNode *parent;
+    rdvec vec;
 } TreeNode;
 
 // 定义 Lexer 结构体
@@ -55,6 +52,5 @@ typedef struct Parser
 
 TreeNode *parse_and_or(Parser *parser);
 TreeNode *get_root(char *input);
-rdvec *make_rdvec();
 
 #endif /* __ACT_PARSER_H__ */

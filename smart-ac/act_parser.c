@@ -1,5 +1,4 @@
 #include "act_parser.h"
-#define CAPACITY 1024
 int counter = 1;
 // 初始化 Lexer
 void init_lexer(Lexer *lexer, const char *input)
@@ -112,7 +111,9 @@ TreeNode *parse_and_or(Parser *parser)
             TreeNode *new_node = (TreeNode *)malloc(sizeof(TreeNode));
             strcpy(new_node->value, "&&");
             new_node->left = node;
+            new_node->left->parent = new_node; // 
             new_node->right = parse_expression(parser);
+            new_node->right->parent = new_node;//
             node = new_node;
         }
         else if (token.type == TOKEN_OR)
@@ -120,7 +121,9 @@ TreeNode *parse_and_or(Parser *parser)
             TreeNode *new_node = (TreeNode *)malloc(sizeof(TreeNode));
             strcpy(new_node->value, "||");
             new_node->left = node;
+            new_node->left->parent = new_node; // 
             new_node->right = parse_expression(parser);
+            new_node->right->parent = new_node;//
             node = new_node;
         }
         else
@@ -138,26 +141,8 @@ void free_tree(TreeNode *node)
         return;
     free_tree(node->left);
     free_tree(node->right);
+    free_rdvec(node->vec);
     free(node);
-}
-
-rdvec *make_rdvec()
-{
-    rdvec *tmp = (rdvec *)malloc(sizeof(rdvec));
-    if (tmp == NULL)
-    {
-        puts("mcalloc failed, exiting...");
-        exit(-1);
-    }
-    (*tmp).length = 1;
-    tmp->data = (int *)calloc(sizeof(int), CAPACITY);
-    if (tmp->data == NULL)
-    {
-        puts("mcalloc failed, exiting...");
-        exit(-1);
-    }
-    // printf("The addr of the new alloced vec is %p.\n", tmp);
-    return tmp;
 }
 
 TreeNode *get_root(char *input)

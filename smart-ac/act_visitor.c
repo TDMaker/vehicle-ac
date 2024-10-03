@@ -54,7 +54,7 @@ TreeNode *dequeue(Queue *queue)
 }
 
 // 广度优先遍历二叉树
-void breadth_first_traversal(TreeNode *root, my_operator op)
+void breadth_first_traversal(TreeNode *root, my_operator op, void* data)
 {
     if (root == NULL)
     {
@@ -68,7 +68,7 @@ void breadth_first_traversal(TreeNode *root, my_operator op)
     while (!is_empty(&queue))
     {
         TreeNode *current = dequeue(&queue);
-        op(current);
+        op(current, data);
 
         if (current->left)
         {

@@ -80,4 +80,8 @@ void rd_cleanup(PK *, MK *, SK *, EV *, IP *);
 void policy_mod(UEV *, IP *, PK, IP, char *pp);
 void evidence_mod(EV *, EV, UEV);
 
+
+void del_or(TreeNode *node, void *data);
+void del_and(TreeNode *node, void *data);
+void add_or(TreeNode *silbling, void *data);
 #endif /* __RUSC_H__ */
