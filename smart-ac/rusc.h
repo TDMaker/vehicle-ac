@@ -28,13 +28,13 @@ typedef struct
     element_t *C1_;
     element_t *C2_;
     element_t *C3_;
-    rdmat2 W;
+    rdmat W;
     RHO rho;
 } EV;
 
 typedef struct
 {
-    rdmat2 W;
+    rdmat W;
     element_t *lambda;
 } IP;
 

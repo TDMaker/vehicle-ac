@@ -13,17 +13,10 @@ typedef struct
 
 typedef struct
 {
-    int *elem;
-    int rows;
-    int cols;
-} rdmat;
-
-typedef struct
-{
     int **elem;
     int rows;
     int cols;
-} rdmat2;
+} rdmat;
 
 typedef struct
 {
@@ -45,16 +38,14 @@ rdmat make_rdmat(int rows, int cols);
 rdmat_f make_rdmat_f(int rows, int cols);
 rdmat_mp make_rdmat_mp(int rows, int cols);
 rdmat_f rdmat_f_mul(rdmat_f a, rdmat_f b);
-rdmat_mp rdmat_mul_sp_mp(rdmat2, rdmat_mp);
-rdmat pick_rows(int count, rdmat2 a, int *rows);
+rdmat_mp rdmat_mul_sp_mp(rdmat, rdmat_mp);
+rdmat pick_rows(int count, rdmat a, int *rows);
 rdmat_f gaussian_elimination(rdmat a);
 rdmat transpose(rdmat a);
 void rdmat_print(const char *name, rdmat a);
-void rdmat2_print(const char *name, rdmat2 a);
 void rdmat_f_print(const char *name, rdmat_f a);
 void free_rdvec(rdvec a);
 void free_rdmat(rdmat a);
-void free_rdmat2(rdmat2 a);
 void free_rdmat_f(rdmat_f a);
 void free_rdmat_mp(rdmat_mp a);
 

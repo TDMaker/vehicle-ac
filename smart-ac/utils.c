@@ -19,28 +19,7 @@ rdmat_mp make_rdmat_mp(int rows, int cols)
     return tmp;
 }
 
-rdmat_mp rdmat_mul_sp_mp_bak(rdmat a, rdmat_mp b)
-{
-    rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
-    element_t prod;
-    element_init_Zr(prod, pairing);
-    for (int i = 0; i < a.rows; i++)
-    {
-        for (int j = 0; j < b.cols; j++)
-        {
-            element_set0(c.elem[i * b.cols + j]);
-            for (int k = 0; k < a.cols; k++)
-            {
-                element_mul_si(prod, b.elem[k * b.cols + j], a.elem[i * a.cols + k]);
-                element_add(c.elem[i * c.cols + j], c.elem[i * c.cols + j], prod);
-            }
-        }
-    }
-    element_clear(prod);
-    return c;
-}
-
-rdmat_mp rdmat_mul_sp_mp(rdmat2 a, rdmat_mp b)
+rdmat_mp rdmat_mul_sp_mp(rdmat a, rdmat_mp b)
 {
     rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
     element_t prod;
@@ -80,10 +59,10 @@ rdmat_f gaussian_elimination(rdmat a)
         {
             aTa.elem[i * n + j] = 0.0f;
             for (int k = 0; k < m; k++)
-                aTa.elem[i * n + j] += a.elem[k * n + i] * a.elem[k * n + j];
+                aTa.elem[i * n + j] += a.elem[k][i] * a.elem[k][j];
         }
         for (int k = 0; k < m; k++)
-            aTb.elem[i] += a.elem[k * n + i] * b.elem[k];
+            aTb.elem[i] += a.elem[k][i] * b.elem[k];
     }
 
     // 高斯消元
@@ -160,16 +139,56 @@ rdmat_f make_rdmat_f(int rows, int cols)
 
 rdmat make_rdmat(int rows, int cols)
 {
-    rdmat tmp = {.rows = rows, .cols = cols, .elem = (int *)calloc(sizeof(int), rows * cols)};
+    rdmat tmp = {.rows = rows, .cols = cols, .elem = (int **)malloc(sizeof(int *) * rows * cols)};
+    for (int i = 0; i < rows; i++)
+    {
+        tmp.elem[i] = (int *)calloc(sizeof(int), cols);
+        if (tmp.elem[i] == NULL)
+        {
+            puts("calloc failed, exiting...");
+            exit(-1);
+        }
+    }
     if (tmp.elem == NULL)
     {
-        puts("calloc failed, exiting...");
+        puts("malloc failed, exiting...");
         exit(-1);
     }
     return tmp;
 }
 
-rdmat pick_rows_bak(int count, rdmat a, int *rows)
+// rdmat pick_rows_bak(int count, rdmat a, int *rows)
+// {
+//     rdmat c = make_rdmat(count, a.cols);
+//     int offset = 0;
+//     int has = 0;
+
+//     for (int i = 0; i < count; i++)
+//     {
+//         if (rows[i] >= a.rows)
+//         {
+//             puts("A row picked exceeds the source matrix!\nexitting...");
+//             exit(-1);
+//         }
+//         has = 0;
+//         for (int j = 0; j < offset; j++)
+//         {
+//             if (memcmp(c.elem + j * c.cols, a.elem + rows[i] * a.cols, a.cols * sizeof(int)) == 0)
+//             {
+//                 has = 1;
+//                 break;
+//             }
+//         }
+//         if (!has)
+//         {
+//             memcpy(c.elem + (offset++) * c.cols, a.elem + rows[i] * a.cols, a.cols * sizeof(int));
+//         }
+//     }
+//     c.rows = offset;
+//     return c;
+// }
+
+rdmat pick_rows(int count, rdmat a, int *rows)
 {
     rdmat c = make_rdmat(count, a.cols);
     int offset = 0;
@@ -185,7 +204,7 @@ rdmat pick_rows_bak(int count, rdmat a, int *rows)
         has = 0;
         for (int j = 0; j < offset; j++)
         {
-            if (memcmp(c.elem + j * c.cols, a.elem + rows[i] * a.cols, a.cols * sizeof(int)) == 0)
+            if (memcmp(c.elem[j], a.elem[rows[i]], a.cols * sizeof(int)) == 0)
             {
                 has = 1;
                 break;
@@ -193,38 +212,7 @@ rdmat pick_rows_bak(int count, rdmat a, int *rows)
         }
         if (!has)
         {
-            memcpy(c.elem + (offset++) * c.cols, a.elem + rows[i] * a.cols, a.cols * sizeof(int));
-        }
-    }
-    c.rows = offset;
-    return c;
-}
-
-rdmat pick_rows(int count, rdmat2 a, int *rows)
-{
-    rdmat c = make_rdmat(count, a.cols);
-    int offset = 0;
-    int has = 0;
-
-    for (int i = 0; i < count; i++)
-    {
-        if (rows[i] >= a.rows)
-        {
-            puts("A row picked exceeds the source matrix!\nexitting...");
-            exit(-1);
-        }
-        has = 0;
-        for (int j = 0; j < offset; j++)
-        {
-            if (memcmp(c.elem + j * c.cols, a.elem[rows[i]], a.cols * sizeof(int)) == 0)
-            {
-                has = 1;
-                break;
-            }
-        }
-        if (!has)
-        {
-            memcpy(c.elem + (offset++) * c.cols, a.elem[rows[i]], a.cols * sizeof(int));
+            memcpy(c.elem[offset++], a.elem[rows[i]], a.cols * sizeof(int));
         }
     }
     c.rows = offset;
@@ -255,13 +243,13 @@ void free_rdmat_f(rdmat_f a)
     return;
 }
 
-void free_rdmat(rdmat a)
-{
-    free(a.elem);
-    return;
-}
+// void free_rdmat(rdmat a)
+// {
+//     free(a.elem);
+//     return;
+// }
 
-void free_rdmat2(rdmat2 a)
+void free_rdmat(rdmat a)
 {
     for (int i = 0; i < a.cols; i++)
     {
@@ -323,33 +311,6 @@ void rdmat_print(const char *name, rdmat a)
         for (int j = 0; j < a.cols; j++)
         {
 
-            printf("%2d", a.elem[i * a.cols + j]);
-            if (j < a.cols - 1)
-                putchar('\t');
-        }
-        printf(" │\n");
-    }
-    printf("%s", "└");
-    for (int i = 0; i < a.cols - 1; i++)
-        putchar('\t');
-    puts("   ┘");
-    puts("=================================================\n");
-    return;
-}
-
-void rdmat2_print(const char *name, rdmat2 a)
-{
-    printf("The matrix **%s** has %d rows and %d cols.\n", name, a.rows, a.cols);
-    printf("%s", "┌");
-    for (int i = 0; i < a.cols - 1; i++)
-        putchar('\t');
-    puts("   ┐");
-    for (int i = 0; i < a.rows; i++)
-    {
-        printf("│");
-        for (int j = 0; j < a.cols; j++)
-        {
-
             printf("%2d", a.elem[i][j]);
             if (j < a.cols - 1)
                 putchar('\t');
@@ -371,7 +332,7 @@ rdmat transpose(rdmat a)
     {
         for (int j = 0; j < c.cols; j++)
         {
-            c.elem[i * c.cols + j] = a.elem[j * a.cols + i];
+            c.elem[i][j] = a.elem[j][i];
         }
     }
     return c;

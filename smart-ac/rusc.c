@@ -265,7 +265,7 @@ void rd_cleanup(PK *pk, MK *mk, SK *sk, EV *ev, IP *ip)
     element_clear(sk->K1);
     element_clear(ev->C);
     element_clear(ev->C0);
-    free_rdmat2(ev->W);
+    free_rdmat(ev->W);
     for (int i = 0; i < ev->rho.len; i++)
     {
         free(ev->rho.data[i]);
