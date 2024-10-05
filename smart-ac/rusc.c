@@ -76,9 +76,9 @@ void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
 {
     root = get_complete_tree(pp);
     breadth_first_traversal(root, display, NULL);
-    get_W_rho(&(ev->W), &(ev->rho.data), root);
+    get_W_rho(&(ev->W), &(ev->rho.node_), root);
     // rdmat_print("W", ev->W);
-    ev->rho.len = ev->W.rows;
+    ev->rho.length = ev->W.rows;
 
     element_t m;
     element_init_GT(m, pairing);
@@ -143,11 +143,11 @@ void key_dist(SK *sk, PK pk, MK mk, RHO rho, char **s, int my_attr_size)
 {
     int S[1024] = {-1};
     sk->len_s = 0;
-    for (int i = 0; i < rho.len; i++)
+    for (int i = 0; i < rho.length; i++)
     {
         for (int j = 0; j < my_attr_size; j++)
         {
-            if (strcmp(rho.data[i], s[j]) == 0)
+            if (strcmp(rho.node_[i]->value, s[j]) == 0)
             {
                 S[sk->len_s++] = i;
             }
@@ -266,11 +266,11 @@ void rd_cleanup(PK *pk, MK *mk, SK *sk, EV *ev, IP *ip)
     element_clear(ev->C);
     element_clear(ev->C0);
     free_rdmat(ev->W);
-    for (int i = 0; i < ev->rho.len; i++)
-    {
-        free(ev->rho.data[i]);
-    }
-    free(ev->rho.data);
+    // for (int i = 0; i < ev->rho.len; i++)
+    // {
+    //     free(ev->rho.node);
+    // }
+    free(ev->rho.node_);
     for (int i = 0; i < sizeof(sk->K2_) / sizeof(sk->K2_[0]); i++)
     {
         element_clear(sk->K2_[i]);

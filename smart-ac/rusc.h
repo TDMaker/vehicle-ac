@@ -17,8 +17,8 @@ typedef element_t MK;
 
 typedef struct
 {
-    char **data;
-    int len;
+    TreeNode **node_;
+    int length;
 } RHO;
 
 typedef struct
@@ -67,13 +67,11 @@ typedef enum
     STATE_UNKNOWN = 8,
 } State;
 
-
 typedef struct
 {
-    char* attr;
+    char *attr;
     State state;
 } UEV;
-
 
 void sys_init(PK *, MK *);
 void policy_init(EV *, IP *, PK, char *M, char *PP);
@@ -82,7 +80,6 @@ int verify(char *, EV, SK);
 void rd_cleanup(PK *, MK *, SK *, EV *, IP *);
 void policy_mod(UEV *, IP *, PK, IP, char *pp);
 void evidence_mod(EV *, EV, UEV);
-
 
 void del_or(TreeNode *node, void *data);
 void del_and(TreeNode *node, void *data);

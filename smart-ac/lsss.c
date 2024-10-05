@@ -2,7 +2,7 @@
 int cols = 1;
 int rows = 0;
 int *tmp_elem;
-char **tmp_rho;
+TreeNode **tmp_rho;
 
 void set_childrens_vec(TreeNode *node, void *data)
 {
@@ -28,6 +28,7 @@ void set_childrens_vec(TreeNode *node, void *data)
     }
     else
     {
+
         rows++;
     }
 }
@@ -57,7 +58,7 @@ TreeNode *get_complete_tree(char *input)
     return root;
 }
 
-void get_W_rho(rdmat *W, char ***rho, TreeNode *root)
+void get_W_rho(rdmat *W, TreeNode ***rho, TreeNode *root)
 {
     W->cols = cols;
     W->rows = 0;
@@ -66,9 +67,11 @@ void get_W_rho(rdmat *W, char ***rho, TreeNode *root)
     {
         W->elem[i] = (int *)calloc(sizeof(int), cols);
     }
-    tmp_rho = (char **)malloc(sizeof(char *) * rows);
+
+    tmp_rho = (TreeNode **)malloc(sizeof(TreeNode *) * rows);
     breadth_first_traversal(root, rdmat_row_concat, W);
     *rho = tmp_rho;
+    tmp_rho = NULL;
     rdmat_print("W", *W);
 }
 
@@ -79,7 +82,7 @@ void rdmat_row_concat(TreeNode *node, void *data)
     {
         memcpy(W->elem[W->rows], node->vec.data, node->vec.length * sizeof(int));
         memset(W->elem[W->rows] + node->vec.length, 0, (W->cols - node->vec.length) * sizeof(int)); // padding 0s
-        tmp_rho[W->rows] = strdup(node->value);
+        tmp_rho[W->rows] = node;
         W->rows++;
     }
 }
