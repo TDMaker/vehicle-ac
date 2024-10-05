@@ -1,5 +1,4 @@
 #include "act_visitor.h"
-extern int counter;
 
 // 初始化空队列
 void init_queue(Queue *queue)

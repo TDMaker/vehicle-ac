@@ -77,6 +77,7 @@ void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
     root = get_complete_tree(pp);
     breadth_first_traversal(root, display, NULL);
     get_W_rho(&(ev->W), &(ev->rho.data), root);
+    // rdmat_print("W", ev->W);
     ev->rho.len = ev->W.rows;
 
     element_t m;
@@ -264,7 +265,7 @@ void rd_cleanup(PK *pk, MK *mk, SK *sk, EV *ev, IP *ip)
     element_clear(sk->K1);
     element_clear(ev->C);
     element_clear(ev->C0);
-    free_rdmat(ev->W);
+    free_rdmat2(ev->W);
     for (int i = 0; i < ev->rho.len; i++)
     {
         free(ev->rho.data[i]);
@@ -297,7 +298,10 @@ void policy_mod(UEV *uev, IP *ip_new, PK pk, IP ip, char *pp_new)
 {
     State new = transition(STATE_START, LABEL_ADD);
     printf("%d\n", new);
-    breadth_first_traversal(root, add_or, "F");
+    // add_or(root, "F");
+    // TODO:
+    // get_W_rho();
+    // breadth_first_traversal(root, display, NULL);
 }
 
 void evidence_mod(EV *ev_new, EV ev, UEV uev)
@@ -348,13 +352,14 @@ void add_or(TreeNode *silbling, void *data) // 我要选择跟谁做兄弟
     silbling->left = new_silbling;
     new_silbling->parent = silbling;
     new_silbling->vec = cpy_rdvec(silbling->vec);
-    strcmp(silbling->value, "||");
+    strcpy(silbling->value, "||");
     silbling->right = (TreeNode *)malloc(sizeof(TreeNode));
     silbling->right->parent = silbling;
-    strcmp(silbling->right->value, "D");
+    strcpy(silbling->right->value, (char *)data);
     silbling->right->left = NULL;
     silbling->right->right = NULL;
-    silbling->right->vec = cpy_rdvec(new_silbling->vec);
+    silbling->right->vec = cpy_rdvec(silbling->vec);
+    print_node(silbling);
 }
 
 void add_and(TreeNode *silbling, void *data)
@@ -366,10 +371,10 @@ void add_and(TreeNode *silbling, void *data)
     new_silbling->vec = cpy_rdvec(silbling->vec);
     new_silbling->vec.data[new_silbling->vec.length] = 1;
     new_silbling->vec.length++;
-    strcmp(silbling->value, "&&");
+    strcpy(silbling->value, "&&");
     silbling->right = (TreeNode *)malloc(sizeof(TreeNode));
     silbling->right->parent = silbling;
-    strcmp(silbling->right->value, "D");
+    strcpy(silbling->right->value, "D");
     silbling->right->left = NULL;
     silbling->right->right = NULL;
     silbling->right->vec = make_rdvec();

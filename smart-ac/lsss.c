@@ -1,22 +1,21 @@
 #include "lsss.h"
-extern int counter;
+int cols = 1;
 int rows = 0;
-int curr_row = 0;
 int *tmp_elem;
 char **tmp_rho;
 
 void set_childrens_vec(TreeNode *node, void *data)
 {
-    // printf("pointer is %p, value is %s, counter is %d.\n", node, node->value, counter);
+    // printf("pointer is %p, value is %s, cols is %d.\n", node, node->value, cols);
     if (strcmp(node->value, "&&") == 0)
     {
-        counter++;
+        cols++;
         node->left->vec = make_rdvec();
         node->right->vec = make_rdvec();
-        node->right->vec.length = node->left->vec.length = counter;
-        memcpy(node->right->vec.data, node->vec.data, sizeof(int) * counter);
-        node->right->vec.data[counter - 1] = 1;
-        node->left->vec.data[counter - 1] = -1;
+        node->right->vec.length = node->left->vec.length = cols;
+        memcpy(node->right->vec.data, node->vec.data, sizeof(int) * cols);
+        node->right->vec.data[cols - 1] = 1;
+        node->left->vec.data[cols - 1] = -1;
     }
     else if (strcmp(node->value, "||") == 0)
     {
@@ -27,18 +26,8 @@ void set_childrens_vec(TreeNode *node, void *data)
         memcpy(node->left->vec.data, node->vec.data, sizeof(int) * parent_length);
         memcpy(node->right->vec.data, node->vec.data, sizeof(int) * parent_length);
     }
-}
-void pad_0s(TreeNode *node, void *data)
-{
-    int length_set = counter;
-    if (strcmp(node->value, "||") && strcmp(node->value, "&&"))
+    else
     {
-        int gap = length_set - node->vec.length;
-        for (int i = node->vec.length; i < length_set; i++)
-        {
-            node->vec.data[i] = 0;
-        }
-        node->vec.length = length_set;
         rows++;
     }
 }
@@ -65,29 +54,33 @@ TreeNode *get_complete_tree(char *input)
     root->vec.length = 1;
     root->parent = NULL;
     breadth_first_traversal(root, set_childrens_vec, NULL);
-    breadth_first_traversal(root, pad_0s, NULL);
     return root;
 }
 
-void get_W_rho(rdmat *W, char ***rho, TreeNode *root)
+void get_W_rho(rdmat2 *W, char ***rho, TreeNode *root)
 {
-    printf("rows = %d, cols = %d\n", rows, counter);
-    W->cols = counter;
-    W->rows = rows;
-    tmp_elem = (int *)calloc(sizeof(int), rows * counter);
+    W->cols = cols;
+    W->rows = 0;
+    W->elem = (int **)malloc(sizeof(char *) * rows);
+    for (int i = 0; i < rows; i++)
+    {
+        W->elem[i] = (int *)calloc(sizeof(int), cols);
+    }
     tmp_rho = (char **)malloc(sizeof(char *) * rows);
-    breadth_first_traversal(root, rdmat_row_concat, NULL);
-    W->elem = tmp_elem;
+    breadth_first_traversal(root, rdmat_row_concat, W);
     *rho = tmp_rho;
+    rdmat2_print("W", *W);
 }
 
 void rdmat_row_concat(TreeNode *node, void *data)
 {
+    rdmat2 *W = (rdmat2 *)data;
     if (strcmp(node->value, "||") && strcmp(node->value, "&&"))
     {
-        memcpy(tmp_elem + curr_row * counter, node->vec.data, counter * sizeof(int));
-        tmp_rho[curr_row] = strdup(node->value);
-        curr_row++;
+        memcpy(W->elem[W->rows], node->vec.data, node->vec.length * sizeof(int));
+        memset(W->elem[W->rows] + node->vec.length, 0, (W->cols - node->vec.length) * sizeof(int)); // padding 0s
+        tmp_rho[W->rows] = strdup(node->value);
+        W->rows++;
     }
 }
 

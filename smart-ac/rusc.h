@@ -28,20 +28,15 @@ typedef struct
     element_t *C1_;
     element_t *C2_;
     element_t *C3_;
-    rdmat W;
+    rdmat2 W;
     RHO rho;
 } EV;
 
 typedef struct
 {
-    rdmat W;
+    rdmat2 W;
     element_t *lambda;
 } IP;
-
-typedef struct
-{
-    int a;
-} UEV;
 
 typedef struct
 {
@@ -71,6 +66,14 @@ typedef enum
     STATE_REPLACE = 7,
     STATE_UNKNOWN = 8,
 } State;
+
+
+typedef struct
+{
+    char* attr;
+    State state;
+} UEV;
+
 
 void sys_init(PK *, MK *);
 void policy_init(EV *, IP *, PK, char *M, char *PP);

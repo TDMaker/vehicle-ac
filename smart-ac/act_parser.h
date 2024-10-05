@@ -52,5 +52,6 @@ typedef struct Parser
 
 TreeNode *parse_and_or(Parser *parser);
 TreeNode *get_root(char *input);
+void print_node(TreeNode*);
 
 #endif /* __ACT_PARSER_H__ */

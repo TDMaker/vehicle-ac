@@ -19,7 +19,7 @@ rdmat_mp make_rdmat_mp(int rows, int cols)
     return tmp;
 }
 
-rdmat_mp rdmat_mul_sp_mp(rdmat a, rdmat_mp b)
+rdmat_mp rdmat_mul_sp_mp_bak(rdmat a, rdmat_mp b)
 {
     rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
     element_t prod;
@@ -32,6 +32,27 @@ rdmat_mp rdmat_mul_sp_mp(rdmat a, rdmat_mp b)
             for (int k = 0; k < a.cols; k++)
             {
                 element_mul_si(prod, b.elem[k * b.cols + j], a.elem[i * a.cols + k]);
+                element_add(c.elem[i * c.cols + j], c.elem[i * c.cols + j], prod);
+            }
+        }
+    }
+    element_clear(prod);
+    return c;
+}
+
+rdmat_mp rdmat_mul_sp_mp(rdmat2 a, rdmat_mp b)
+{
+    rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
+    element_t prod;
+    element_init_Zr(prod, pairing);
+    for (int i = 0; i < a.rows; i++)
+    {
+        for (int j = 0; j < b.cols; j++)
+        {
+            element_set0(c.elem[i * b.cols + j]);
+            for (int k = 0; k < a.cols; k++)
+            {
+                element_mul_si(prod, b.elem[k * b.cols + j], a.elem[i][k]);
                 element_add(c.elem[i * c.cols + j], c.elem[i * c.cols + j], prod);
             }
         }
@@ -148,7 +169,7 @@ rdmat make_rdmat(int rows, int cols)
     return tmp;
 }
 
-rdmat pick_rows(int count, rdmat a, int *rows)
+rdmat pick_rows_bak(int count, rdmat a, int *rows)
 {
     rdmat c = make_rdmat(count, a.cols);
     int offset = 0;
@@ -178,6 +199,38 @@ rdmat pick_rows(int count, rdmat a, int *rows)
     c.rows = offset;
     return c;
 }
+
+rdmat pick_rows(int count, rdmat2 a, int *rows)
+{
+    rdmat c = make_rdmat(count, a.cols);
+    int offset = 0;
+    int has = 0;
+
+    for (int i = 0; i < count; i++)
+    {
+        if (rows[i] >= a.rows)
+        {
+            puts("A row picked exceeds the source matrix!\nexitting...");
+            exit(-1);
+        }
+        has = 0;
+        for (int j = 0; j < offset; j++)
+        {
+            if (memcmp(c.elem + j * c.cols, a.elem[rows[i]], a.cols * sizeof(int)) == 0)
+            {
+                has = 1;
+                break;
+            }
+        }
+        if (!has)
+        {
+            memcpy(c.elem + (offset++) * c.cols, a.elem[rows[i]], a.cols * sizeof(int));
+        }
+    }
+    c.rows = offset;
+    return c;
+}
+
 rdmat_f rdmat_f_mul(rdmat_f a, rdmat_f b)
 {
     rdmat_f c = make_rdmat_f(a.rows, b.cols);
@@ -204,6 +257,16 @@ void free_rdmat_f(rdmat_f a)
 
 void free_rdmat(rdmat a)
 {
+    free(a.elem);
+    return;
+}
+
+void free_rdmat2(rdmat2 a)
+{
+    for (int i = 0; i < a.cols; i++)
+    {
+        free(a.elem[i]);
+    }
     free(a.elem);
     return;
 }
@@ -261,6 +324,33 @@ void rdmat_print(const char *name, rdmat a)
         {
 
             printf("%2d", a.elem[i * a.cols + j]);
+            if (j < a.cols - 1)
+                putchar('\t');
+        }
+        printf(" │\n");
+    }
+    printf("%s", "└");
+    for (int i = 0; i < a.cols - 1; i++)
+        putchar('\t');
+    puts("   ┘");
+    puts("=================================================\n");
+    return;
+}
+
+void rdmat2_print(const char *name, rdmat2 a)
+{
+    printf("The matrix **%s** has %d rows and %d cols.\n", name, a.rows, a.cols);
+    printf("%s", "┌");
+    for (int i = 0; i < a.cols - 1; i++)
+        putchar('\t');
+    puts("   ┐");
+    for (int i = 0; i < a.rows; i++)
+    {
+        printf("│");
+        for (int j = 0; j < a.cols; j++)
+        {
+
+            printf("%2d", a.elem[i][j]);
             if (j < a.cols - 1)
                 putchar('\t');
         }

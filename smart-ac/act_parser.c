@@ -1,5 +1,4 @@
 #include "act_parser.h"
-int counter = 1;
 // 初始化 Lexer
 void init_lexer(Lexer *lexer, const char *input)
 {
@@ -111,9 +110,9 @@ TreeNode *parse_and_or(Parser *parser)
             TreeNode *new_node = (TreeNode *)malloc(sizeof(TreeNode));
             strcpy(new_node->value, "&&");
             new_node->left = node;
-            new_node->left->parent = new_node; // 
+            new_node->left->parent = new_node; //
             new_node->right = parse_expression(parser);
-            new_node->right->parent = new_node;//
+            new_node->right->parent = new_node; //
             node = new_node;
         }
         else if (token.type == TOKEN_OR)
@@ -121,9 +120,9 @@ TreeNode *parse_and_or(Parser *parser)
             TreeNode *new_node = (TreeNode *)malloc(sizeof(TreeNode));
             strcpy(new_node->value, "||");
             new_node->left = node;
-            new_node->left->parent = new_node; // 
+            new_node->left->parent = new_node; //
             new_node->right = parse_expression(parser);
-            new_node->right->parent = new_node;//
+            new_node->right->parent = new_node; //
             node = new_node;
         }
         else
@@ -152,4 +151,19 @@ TreeNode *get_root(char *input)
     init_lexer(&parser.lexer, input);
 
     return parse_and_or(&parser);
+}
+
+void print_node(TreeNode *node)
+{
+    printf("Node: %s\n", node->value);
+    puts("vec:");
+    for (int i = 0; i < node->vec.length; i++)
+    {
+        printf("%2d ", node->vec.data[i]);
+    }
+    puts("");
+    if (node->left != NULL && node->right != NULL)
+        printf("Left child: %s, Right child: %s\n", node->left->value, node->right->value);
+
+    puts("======================");
 }
