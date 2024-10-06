@@ -87,6 +87,7 @@ TreeNode *parse_expression(Parser *parser)
     else if (token.type == TOKEN_KEYWORD)
     {
         TreeNode *node = (TreeNode *)malloc(sizeof(TreeNode));
+        node->vec.length = 0;
         strcpy(node->value, token.text);
         node->left = NULL;
         node->right = NULL;
@@ -108,6 +109,7 @@ TreeNode *parse_and_or(Parser *parser)
         if (token.type == TOKEN_AND)
         {
             TreeNode *new_node = (TreeNode *)malloc(sizeof(TreeNode));
+            new_node->vec.length = 0;
             strcpy(new_node->value, "&&");
             new_node->left = node;
             new_node->left->parent = new_node; //
@@ -118,6 +120,7 @@ TreeNode *parse_and_or(Parser *parser)
         else if (token.type == TOKEN_OR)
         {
             TreeNode *new_node = (TreeNode *)malloc(sizeof(TreeNode));
+            new_node->vec.length = 0;
             strcpy(new_node->value, "||");
             new_node->left = node;
             new_node->left->parent = new_node; //

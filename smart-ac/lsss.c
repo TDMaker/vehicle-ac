@@ -6,25 +6,54 @@ TreeNode **tmp_rho;
 
 void set_childrens_vec(TreeNode *node, void *data)
 {
-    // printf("pointer is %p, value is %s, cols is %d.\n", node, node->value, cols);
     if (strcmp(node->value, "&&") == 0)
     {
         cols++;
-        node->left->vec = make_rdvec();
-        node->right->vec = make_rdvec();
-        node->right->vec.length = node->left->vec.length = cols;
+        if (node->left->vec.length == 0)
+        {
+            node->left->vec = make_rdvec();
+        }
+        else
+        {
+            memset(node->left->vec.data, 0, CAPACITY);
+        }
+        node->left->vec.length = cols;
+        if (node->right->vec.length == 0)
+        {
+            node->right->vec = make_rdvec();
+            node->right->vec.length = cols;
+        }
+        else
+        {
+            memset(node->right->vec.data, 0, CAPACITY);
+        }
+        node->right->vec.length = cols;
         memcpy(node->right->vec.data, node->vec.data, sizeof(int) * cols);
         node->right->vec.data[cols - 1] = 1;
         node->left->vec.data[cols - 1] = -1;
     }
     else if (strcmp(node->value, "||") == 0)
     {
-        node->left->vec = make_rdvec();
-        node->right->vec = make_rdvec();
-        int parent_length = node->vec.length;
-        node->right->vec.length = node->left->vec.length = parent_length;
-        memcpy(node->left->vec.data, node->vec.data, sizeof(int) * parent_length);
-        memcpy(node->right->vec.data, node->vec.data, sizeof(int) * parent_length);
+        if (node->left->vec.length == 0)
+        {
+            node->left->vec = make_rdvec();
+        }
+        else
+        {
+            memset(node->left->vec.data, 0, CAPACITY);
+        }
+        node->left->vec.length = node->vec.length;
+        if (node->right->vec.length == 0)
+        {
+            node->right->vec = make_rdvec();
+        }
+        else
+        {
+            memset(node->left->vec.data, 0, CAPACITY);
+        }
+        node->right->vec.length = node->vec.length;
+        memcpy(node->left->vec.data, node->vec.data, sizeof(int) * node->vec.length);
+        memcpy(node->right->vec.data, node->vec.data, sizeof(int) * node->vec.length);
     }
     else
     {
@@ -54,12 +83,28 @@ TreeNode *get_complete_tree(char *input)
     root->vec.data[0] = 1;
     root->vec.length = 1;
     root->parent = NULL;
-    breadth_first_traversal(root, set_childrens_vec, NULL);
+    init_vec(root);
     return root;
+}
+
+void init_vec(TreeNode *root)
+{
+    cols = 1;
+    rows = 0;
+    breadth_first_traversal(root, set_childrens_vec, NULL);
 }
 
 void get_W_rho(rdmat *W, TreeNode ***rho, TreeNode *root)
 {
+    if (W->elem != NULL)
+    {
+        for (int i = 0; i < W->rows; i++)
+        {
+            free(W->elem[i]);
+        }
+        free(W->elem);
+        free(*rho);
+    }
     W->cols = cols;
     W->rows = 0;
     W->elem = (int **)malloc(sizeof(char *) * rows);

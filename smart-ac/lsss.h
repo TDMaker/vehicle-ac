@@ -10,5 +10,5 @@ TreeNode *get_complete_tree(char *input);
 void rdmat_row_concat(TreeNode *node, void *data);
 void get_W_rho(rdmat *W, TreeNode*** rho, TreeNode *root);
 void rd_free_tree(TreeNode *tree);
-
+void init_vec(TreeNode *root);
 #endif /* __LSSS_H__ */

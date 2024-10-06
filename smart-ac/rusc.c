@@ -76,15 +76,21 @@ void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
 {
     root = get_complete_tree(pp);
     breadth_first_traversal(root, display, NULL);
+    ev->W.elem = NULL;
     get_W_rho(&(ev->W), &(ev->rho.node_), root);
     // rdmat_print("W", ev->W);
     ev->rho.length = ev->W.rows;
+
+    for (int i = 0; i < ev->rho.length; i++)
+    {
+        puts(ev->rho.node_[i]->value);
+    }
 
     element_t m;
     element_init_GT(m, pairing);
     element_from_hash(m, _m, strlen(_m));
     int L = ev->W.rows;
-    printf("L is %d\n", L);
+    // printf("L is %d\n", L);
     rdmat_mp vec_v = make_rdmat_mp(L, 1);
     for (int i = 0; i < ev->W.cols; i++)
     {
@@ -293,11 +299,17 @@ void rd_cleanup(PK *pk, MK *mk, SK *sk, EV *ev, IP *ip)
 
     pairing_clear(pairing);
 }
-
-void policy_mod(UEV *uev, IP *ip_new, PK pk, IP ip, char *pp_new)
+void del(EV *ev, int index);
+void add(EV *ev, int index, int trace_back, const char *connector, const char *value);
+void policy_mod(UEV *uev, IP *ip_new, PK pk, IP ip, EV *ev, char *pp_new)
 {
     State new = transition(STATE_START, LABEL_ADD);
     printf("%d\n", new);
+    del(ev, 0);
+    // add(ev, 5, 0, "&&", "F");
+    init_vec(root);
+    get_W_rho(&(ev->W), &(ev->rho.node_), root);
+    ev->rho.length = ev->W.rows;
     // add_or(root, "F");
     // TODO:
     // get_W_rho();
@@ -308,76 +320,100 @@ void evidence_mod(EV *ev_new, EV ev, UEV uev)
 {
 }
 
-void del_or(TreeNode *node, void *data)
+void del(EV *ev, int index)
 {
-    char *value = (char *)data;
-    if (strcmp(node->value, value) == 0 && strcmp(node->parent->value, "||") == 0)
+    if (index >= ev->rho.length)
     {
-        TreeNode *silbling = node->parent->left == node ? node->parent->right : node->parent->left;
-        strcpy(node->parent->value, silbling->value);
-        silbling->parent->left = silbling->left;
-        silbling->parent->right = silbling->right;
-        free_rdvec(silbling->vec);
-        free(silbling);
-        free_rdvec(node->vec);
-        free(node);
+        puts("Index exceeds boundary!");
+        return;
     }
-}
-
-void del_and(TreeNode *node, void *data)
-{
-    char *value = (char *)data;
-    if (strcmp(node->value, value) == 0 && strcmp(node->parent->value, "&&") == 0)
+    TreeNode *node = ev->rho.node_[index];
+    TreeNode *sibling = node->parent->left == node ? node->parent->right : node->parent->left;
+    if (strcmp(node->parent->value, "||") == 0)
     {
-        TreeNode *silbling = node->parent->left == node ? node->parent->right : node->parent->left;
-        for (int i = 0; i < silbling->vec.length; i++)
+        // element_clear(ev->C1_[index]);
+        // element_clear(ev->C2_[index]);
+        // element_clear(ev->C3_[index]);
+    }
+    else if (strcmp(node->parent->value, "&&") == 0)
+    {
+        for (int i = 0; i < sibling->vec.length; i++)
         {
-            silbling->vec.data[i] += node->vec.data[i];
+            sibling->vec.data[i] += node->vec.data[i];
         }
-        strcpy(silbling->parent->value, silbling->value);
-        free_rdvec(silbling->parent->vec);
-        silbling->parent->vec = silbling->vec;
-        silbling->parent->left = silbling->left;
-        silbling->parent->right = silbling->right;
-        free(silbling);
-        free_rdvec(node->vec);
-        free(node);
+        // sibling->vec.length--;
     }
+    else
+    {
+        puts("The parent of the handling node is not a connector!");
+        return;
+    }
+
+    strcpy(sibling->parent->value, sibling->value);
+    free_rdvec(sibling->parent->vec);
+    sibling->parent->vec = sibling->vec;
+    sibling->parent->left = sibling->left;
+    sibling->parent->right = sibling->right;
+    free(sibling);
+    free_rdvec(node->vec);
+    free(node);
 }
 
-void add_or(TreeNode *silbling, void *data) // 我要选择跟谁做兄弟
+void add(EV *ev, int index, int trace_back, const char *connector, const char *value)
 {
-    TreeNode *new_silbling = (TreeNode *)malloc(sizeof(TreeNode));
-    memcpy(new_silbling, silbling, sizeof(TreeNode));
-    silbling->left = new_silbling;
-    new_silbling->parent = silbling;
-    new_silbling->vec = cpy_rdvec(silbling->vec);
-    strcpy(silbling->value, "||");
-    silbling->right = (TreeNode *)malloc(sizeof(TreeNode));
-    silbling->right->parent = silbling;
-    strcpy(silbling->right->value, (char *)data);
-    silbling->right->left = NULL;
-    silbling->right->right = NULL;
-    silbling->right->vec = cpy_rdvec(silbling->vec);
-    print_node(silbling);
-}
-
-void add_and(TreeNode *silbling, void *data)
-{
-    TreeNode *new_silbling = (TreeNode *)malloc(sizeof(TreeNode));
-    memcpy(new_silbling, silbling, sizeof(TreeNode));
-    silbling->left = new_silbling;
-    new_silbling->parent = silbling;
-    new_silbling->vec = cpy_rdvec(silbling->vec);
-    new_silbling->vec.data[new_silbling->vec.length] = 1;
-    new_silbling->vec.length++;
-    strcpy(silbling->value, "&&");
-    silbling->right = (TreeNode *)malloc(sizeof(TreeNode));
-    silbling->right->parent = silbling;
-    strcpy(silbling->right->value, "D");
-    silbling->right->left = NULL;
-    silbling->right->right = NULL;
-    silbling->right->vec = make_rdvec();
-    silbling->right->vec.length = silbling->left->vec.length;
-    silbling->right->vec.data[silbling->right->vec.length - 1] = -1;
+    if (index >= ev->rho.length)
+    {
+        puts("Index exceeds boundary!");
+        return;
+    }
+    TreeNode *new_parent = ev->rho.node_[index];
+    for (int i = 0; i < trace_back; i++)
+    {
+        if (new_parent->parent != NULL)
+        {
+            new_parent = new_parent->parent;
+        }
+        else
+        {
+            puts("Can't find the ancestors that far away.");
+            return;
+        }
+    }
+    if (strcmp(connector, "||") == 0 || strcmp(connector, "&&") == 0)
+    {
+        TreeNode *sibling = (TreeNode *)malloc(sizeof(TreeNode));
+        memcpy(sibling, new_parent, sizeof(TreeNode));
+        if (new_parent->left != NULL)
+            new_parent->left->parent = sibling;
+        if (new_parent->right != NULL)
+            new_parent->right->parent = sibling;
+        new_parent->right = sibling;
+        new_parent->left = (TreeNode *)malloc(sizeof(TreeNode));
+        sibling->parent = new_parent;
+        sibling->vec = cpy_rdvec(new_parent->vec);
+        strcpy(new_parent->value, connector);
+        new_parent->left->parent = new_parent;
+        strcpy(new_parent->left->value, value);
+        new_parent->left->left = NULL;
+        new_parent->left->right = NULL;
+        if (strcmp(connector, "||") == 0)
+        {
+        }
+        else if (strcmp(connector, "&&") == 0)
+        {
+            sibling->vec.data[sibling->vec.length] = 1;
+            sibling->vec.length++;
+            new_parent->left->vec = make_rdvec();
+            new_parent->left->vec.length = new_parent->right->vec.length;
+            new_parent->left->vec.data[new_parent->left->vec.length - 1] = -1;
+        }
+        // print_node(new_parent);
+        // print_node(new_parent->left);
+        // print_node(new_parent->right);
+    }
+    else
+    {
+        puts("Unknown connector to be added!");
+        return;
+    }
 }

@@ -78,10 +78,10 @@ void policy_init(EV *, IP *, PK, char *M, char *PP);
 void key_dist(SK *, PK, MK, RHO, char **S, int size);
 int verify(char *, EV, SK);
 void rd_cleanup(PK *, MK *, SK *, EV *, IP *);
-void policy_mod(UEV *, IP *, PK, IP, char *pp);
+void policy_mod(UEV *, IP *, PK, IP, EV *, char *pp);
 void evidence_mod(EV *, EV, UEV);
 
 void del_or(TreeNode *node, void *data);
 void del_and(TreeNode *node, void *data);
-void add_or(TreeNode *silbling, void *data);
+void add_or(TreeNode *sibling, void *data);
 #endif /* __RUSC_H__ */
