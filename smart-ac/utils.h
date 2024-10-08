@@ -32,14 +32,13 @@ typedef struct
     element_t *elem;
 } rdmat_mp;
 
-
 rdvec make_rdvec();
 rdvec cpy_rdvec(rdvec a);
 rdmat make_rdmat(int rows, int cols);
 rdmat_f make_rdmat_f(int rows, int cols);
 rdmat_mp make_rdmat_mp(int rows, int cols);
 rdmat_f rdmat_f_mul(rdmat_f a, rdmat_f b);
-rdmat_mp rdmat_mul_sp_mp(rdmat, rdmat_mp);
+element_t **rdmat_mul_sp_mp(rdmat, rdmat_mp);
 rdmat pick_rows(int count, rdmat a, int *rows);
 rdmat get_arged_mat(rdmat a);
 rdmat_f gaussian_elimination(rdmat a);

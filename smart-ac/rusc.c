@@ -97,7 +97,7 @@ void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
         element_random(vec_v.elem[i]);
     }
 
-    ip->lambda = rdmat_mul_sp_mp(ev->W, vec_v).elem;
+    ip->lambda = rdmat_mul_sp_mp(ev->W, vec_v);
     ip->W = ev->W;
     rdmat_mp t_ = make_rdmat_mp(1, L);
     for (int i = 0; i < L; i++)
@@ -116,25 +116,28 @@ void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
 
     element_init_G1(ev->C0, pairing);
     element_pow_zn(ev->C0, pk.g, vec_v.elem[0]);
-    ev->C1_ = (element_t *)malloc(sizeof(element_t) * L);
-    ev->C2_ = (element_t *)malloc(sizeof(element_t) * L);
-    ev->C3_ = (element_t *)malloc(sizeof(element_t) * L);
+    ev->C1_ = (element_t **)malloc(sizeof(element_t *) * L);
+    ev->C2_ = (element_t **)malloc(sizeof(element_t *) * L);
+    ev->C3_ = (element_t **)malloc(sizeof(element_t *) * L);
     for (int i = 0; i < L; i++)
     {
-        element_init_G1(ev->C1_[i], pairing);
-        element_pow_zn(ev->C1_[i], pk.w, ip->lambda[i]);
+        ev->C1_[i] = (element_t *)malloc(sizeof(element_t));
+        element_init_G1(*ev->C1_[i], pairing);
+        element_pow_zn(*ev->C1_[i], pk.w, *ip->lambda[i]);
         element_pow_zn(tmp1, pk.v, t_.elem[i]);
-        element_mul(ev->C1_[i], ev->C1_[i], tmp1);
+        element_mul(*ev->C1_[i], *(ev->C1_[i]), tmp1);
 
-        element_init_G1(ev->C2_[i], pairing);
+        ev->C2_[i] = (element_t *)malloc(sizeof(element_t));
+        element_init_G1(*ev->C2_[i], pairing);
         element_set_si(tmp2, i);
-        element_pow_zn(ev->C2_[i], pk.u, tmp2);
-        element_mul(ev->C2_[i], ev->C2_[i], pk.h);
+        element_pow_zn(*ev->C2_[i], pk.u, tmp2);
+        element_mul(*ev->C2_[i], *ev->C2_[i], pk.h);
         element_neg(tmp2, t_.elem[i]);
-        element_pow_zn(ev->C2_[i], ev->C2_[i], tmp2);
+        element_pow_zn(*ev->C2_[i], *ev->C2_[i], tmp2);
 
-        element_init_G1(ev->C3_[i], pairing);
-        element_pow_zn(ev->C3_[i], pk.g, t_.elem[i]);
+        ev->C3_[i] = (element_t *)malloc(sizeof(element_t));
+        element_init_G1(*ev->C3_[i], pairing);
+        element_pow_zn(*ev->C3_[i], pk.g, t_.elem[i]);
     }
 
     element_clear(tmp1);
@@ -232,10 +235,10 @@ int verify(char *_m, EV ev, SK sk)
 
     for (int i = 0; i < sk.len_s; i++)
     {
-        pairing_apply(B_i, ev.C1_[sk.s[i]], sk.K1, pairing);
-        pairing_apply(prod, ev.C2_[sk.s[i]], sk.K2_[i], pairing);
+        pairing_apply(B_i, *ev.C1_[sk.s[i]], sk.K1, pairing);
+        pairing_apply(prod, (*ev.C2_[sk.s[i]]), sk.K2_[i], pairing);
         element_mul(B_i, B_i, prod);
-        pairing_apply(prod, ev.C3_[sk.s[i]], sk.K3_[i], pairing);
+        pairing_apply(prod, *ev.C3_[sk.s[i]], sk.K3_[i], pairing);
         element_mul(B_i, B_i, prod);
 
         element_set_si(omega_mp, i >= omega.rows ? 0 : omega.elem[i]);
@@ -288,10 +291,10 @@ void rd_cleanup(PK *pk, MK *mk, SK *sk, EV *ev, IP *ip)
     free(sk->K3_);
     for (int i = 0; i < sizeof(ev->C1_) / sizeof(ev->C1_[0]); i++)
     {
-        element_clear(ev->C1_[i]);
-        element_clear(ev->C2_[i]);
-        element_clear(ev->C3_[i]);
-        element_clear(ip->lambda[i]);
+        element_clear(*ev->C1_[i]);
+        element_clear(*ev->C2_[i]);
+        element_clear(*ev->C3_[i]);
+        element_clear(*ip->lambda[i]);
     }
     free(ev->C1_);
     free(ev->C2_);
@@ -302,7 +305,7 @@ void rd_cleanup(PK *pk, MK *mk, SK *sk, EV *ev, IP *ip)
 }
 void del(EV *ev, int index);
 void add(EV *ev, int index, int trace_back, const char *connector, const char *value);
-void policy_mod(UEV *uev, IP *ip_new, PK pk, IP ip, EV *ev, char *pp_new)
+void policy_mod(UEV *uev, IP *ip_new, PK pk, IP *ip, EV *ev, char *pp_new)
 {
     State new = transition(STATE_START, LABEL_ADD);
     printf("%d\n", new);
@@ -366,24 +369,32 @@ void policy_mod(UEV *uev, IP *ip_new, PK pk, IP ip, EV *ev, char *pp_new)
     ev->W.elem = tmp_W;
     rdmat_print("new W", ev->W);
 
-    element_t *new_C1_ = (element_t *)malloc(sizeof(element_t) * new_rho.length);
-    element_t *new_C2_ = (element_t *)malloc(sizeof(element_t) * new_rho.length);
-    element_t *new_C3_ = (element_t *)malloc(sizeof(element_t) * new_rho.length);
+    element_t **new_C1_ = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
+    element_t **new_C2_ = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
+    element_t **new_C3_ = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
+    element_t **new_lambda = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
 
     for (int i = 0, j = 0; i < ev->rho.length; i++, j++)
     {
         if (i == row_removed)
         {
-            element_free(ev->C1_[i]);
-            element_free(ev->C2_[i]);
-            element_free(ev->C3_[i]);
+            element_free(*ev->C1_[i]);
+            element_free(*ev->C2_[i]);
+            element_free(*ev->C3_[i]);
+            element_free(*ip->lambda[i]);
             j--;
             continue;
         }
-        element_set(new_C1_[j], ev->C1_[i]);
-        element_set(new_C2_[j], ev->C2_[i]);
-        element_set(new_C3_[j], ev->C3_[i]);
+        new_C1_[j] = ev->C1_[i];
+        new_C2_[j] = ev->C2_[i];
+        new_C3_[j] = ev->C3_[i];
+        new_lambda[j] = ip->lambda[i];
     }
+
+    ev->C1_ = new_C1_;
+    ev->C2_ = new_C2_;
+    ev->C3_ = new_C3_;
+    ip->lambda = new_lambda;
 
     // add_or(root, "F");
     // TODO:

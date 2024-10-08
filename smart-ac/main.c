@@ -43,7 +43,7 @@ int main()
     char *PP_new = "(E)&&((((A)&&(B))||((C)&&(D)))||((B)&&((C)||(D))))";
     UEV uev;
     IP ip_new;
-    policy_mod(&uev, &ip_new, pk, ip, &ev, PP_new);
+    policy_mod(&uev, &ip_new, pk, &ip, &ev, PP_new);
 
     /**
      * EvidMod(EV_cur,UEV)→{EV_new}
