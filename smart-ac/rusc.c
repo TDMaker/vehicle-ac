@@ -77,14 +77,14 @@ void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
     root = get_complete_tree(pp);
     breadth_first_traversal(root, display, NULL);
     ev->W.elem = NULL;
-    get_W_rho(&(ev->W), &(ev->rho.node_), root);
+    get_W_rho(&(ev->W), &(ev->rho.node_), root, 0);
     // rdmat_print("W", ev->W);
     ev->rho.length = ev->W.rows;
 
-    for (int i = 0; i < ev->rho.length; i++)
-    {
-        puts(ev->rho.node_[i]->value);
-    }
+    // for (int i = 0; i < ev->rho.length; i++)
+    // {
+    //     puts(ev->rho.node_[i]->value);
+    // }
 
     element_t m;
     element_init_GT(m, pairing);
@@ -219,7 +219,8 @@ int verify(char *_m, EV ev, SK sk)
 
     rdmat W_T = transpose(rows_picked);
     rdmat_print("W_T", W_T);
-    rdmat_f omega = gaussian_elimination(W_T);
+    rdmat arged_mat = get_arged_mat(W_T);
+    rdmat_f omega = gaussian_elimination(arged_mat);
     rdmat_f_print("omega", omega);
 
     element_t B_i, prod, B, omega_mp;
@@ -241,7 +242,6 @@ int verify(char *_m, EV ev, SK sk)
         element_pow_zn(B_i, B_i, omega_mp);
         element_mul(B, B, B_i);
     }
-
     element_mul(B, B, ev.C);
     pairing_apply(prod, ev.C0, sk.K0, pairing);
     element_mul(prod, m, prod);
@@ -255,6 +255,7 @@ int verify(char *_m, EV ev, SK sk)
     element_clear(m);
     free_rdmat(rows_picked);
     free_rdmat(W_T);
+    free_rdmat(arged_mat);
     free_rdmat_f(omega);
     return result;
 }
@@ -305,11 +306,85 @@ void policy_mod(UEV *uev, IP *ip_new, PK pk, IP ip, EV *ev, char *pp_new)
 {
     State new = transition(STATE_START, LABEL_ADD);
     printf("%d\n", new);
-    del(ev, 0);
+    del(ev, 3);
     // add(ev, 5, 0, "&&", "F");
     init_vec(root);
-    get_W_rho(&(ev->W), &(ev->rho.node_), root);
-    ev->rho.length = ev->W.rows;
+    RHO new_rho;
+    get_W_rho(&(ev->W), &(new_rho.node_), root, 1);
+    new_rho.length = ev->W.rows;
+
+    int row_removed = -1;
+    for (int i = 0; i < ev->rho.length; i++)
+    {
+        int has = 0;
+        for (int j = 0; j < new_rho.length; j++)
+        {
+            if (ev->rho.node_[i] == new_rho.node_[j])
+            {
+                printf("ev->rho.node_[%d].val = %s\n", i, ev->rho.node_[i]->value);
+                has = 1;
+                break;
+            }
+        }
+        if (has == 0)
+        {
+            row_removed = i;
+            break;
+        }
+    }
+
+    printf("The %dth node has been removed.\n", row_removed);
+
+    int **tmp_W = (int **)malloc(sizeof(int *) * ev->W.rows);
+    for (int i = 0; i < ev->W.rows; i++)
+    {
+        tmp_W[i] = NULL;
+    }
+
+    for (int i = 0; i < ev->rho.length; i++)
+    {
+        for (int j = 0; j < new_rho.length; j++)
+        {
+            if (ev->rho.node_[i] == new_rho.node_[j])
+            {
+                tmp_W[i] = ev->W.elem[j];
+                break;
+            }
+        }
+    }
+    for (int i = 0; i < new_rho.length; i++)
+    {
+        if (tmp_W[i] == NULL)
+        {
+            for (int j = i; j < new_rho.length; j++)
+            {
+                tmp_W[j] = tmp_W[j + 1];
+            }
+        }
+    }
+    free(ev->W.elem);
+    ev->W.elem = tmp_W;
+    rdmat_print("new W", ev->W);
+
+    element_t *new_C1_ = (element_t *)malloc(sizeof(element_t) * new_rho.length);
+    element_t *new_C2_ = (element_t *)malloc(sizeof(element_t) * new_rho.length);
+    element_t *new_C3_ = (element_t *)malloc(sizeof(element_t) * new_rho.length);
+
+    for (int i = 0, j = 0; i < ev->rho.length; i++, j++)
+    {
+        if (i == row_removed)
+        {
+            element_free(ev->C1_[i]);
+            element_free(ev->C2_[i]);
+            element_free(ev->C3_[i]);
+            j--;
+            continue;
+        }
+        element_set(new_C1_[j], ev->C1_[i]);
+        element_set(new_C2_[j], ev->C2_[i]);
+        element_set(new_C3_[j], ev->C3_[i]);
+    }
+
     // add_or(root, "F");
     // TODO:
     // get_W_rho();
@@ -357,6 +432,16 @@ void del(EV *ev, int index)
     free(sibling);
     free_rdvec(node->vec);
     free(node);
+
+    // update the address recorded in the old rho.
+    for (int i = 0; i < ev->rho.length; i++)
+    {
+        if (ev->rho.node_[i] == sibling)
+        {
+            ev->rho.node_[i] = sibling->parent;
+            break;
+        }
+    }
 }
 
 void add(EV *ev, int index, int trace_back, const char *connector, const char *value)

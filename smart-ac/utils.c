@@ -40,7 +40,7 @@ rdmat_mp rdmat_mul_sp_mp(rdmat a, rdmat_mp b)
     return c;
 }
 
-rdmat_f gaussian_elimination(rdmat a)
+rdmat_f gaussian_elimination2(rdmat a)
 {
     int m = a.rows;
     int n = a.cols;
@@ -126,6 +126,100 @@ rdmat_f gaussian_elimination(rdmat a)
     return c;
 }
 
+rdmat_f gaussian_elimination(rdmat augmentedMatrix)
+{
+    int rank = 0;
+    int pivotRow, swapCount = 0;
+    double pivotElement;
+    rdmat_f solution = make_rdmat_f(augmentedMatrix.cols, 1);
+    int cols = augmentedMatrix.cols;
+    int rows = augmentedMatrix.rows;
+
+    // 遍历每一列
+    for (int col = 0; col < cols - 1 && col < rows; col++)
+    {
+        pivotElement = fabs(augmentedMatrix.elem[col][col]);
+        pivotRow = col;
+
+        // 寻找绝对值最大的元素作为主元
+        for (int row = col + 1; row < rows; row++)
+        {
+            if (fabs(augmentedMatrix.elem[row][col]) > pivotElement)
+            {
+                pivotElement = fabs(augmentedMatrix.elem[row][col]);
+                pivotRow = row;
+            }
+        }
+
+        // 如果主元为0，则无解
+        if (pivotElement == 0)
+        {
+            continue;
+        }
+
+        // 交换行
+        if (pivotRow != col)
+        {
+            for (int k = col; k < cols; k++)
+            {
+                double temp = augmentedMatrix.elem[col][k];
+                augmentedMatrix.elem[col][k] = augmentedMatrix.elem[pivotRow][k];
+                augmentedMatrix.elem[pivotRow][k] = temp;
+            }
+            swapCount++;
+        }
+
+        // 将主元下方的元素变为0
+        for (int row = col + 1; row < rows; row++)
+        {
+            double factor = augmentedMatrix.elem[row][col] / augmentedMatrix.elem[col][col];
+            for (int k = col; k < cols; k++)
+            {
+                augmentedMatrix.elem[row][k] -= factor * augmentedMatrix.elem[col][k];
+            }
+        }
+        rank++;
+    }
+
+    // 检查是否存在矛盾方程
+    for (int row = rank; row < rows; row++)
+    {
+        double sum = 0.0;
+        for (int col = 0; col < cols - 1; col++)
+        {
+            sum += augmentedMatrix.elem[row][col] * 1.0;
+        }
+        if (fabs(sum - augmentedMatrix.elem[row][cols - 1]) > 1e-10)
+        {
+            puts("There are contradictory equations");
+            exit(-1); // 存在矛盾方程
+        }
+    }
+
+    // 如果存在多余自由变量，则随机设置这些变量
+    if (rank < cols - 1)
+    {
+        srand(time(NULL));
+        for (int i = rank; i < cols - 1; i++)
+        {
+            solution.elem[i] = (float)(rand() % 100) / 100.0;
+        }
+    }
+
+    // 回代求解
+    for (int i = rank - 1; i >= 0; i--)
+    {
+        float sum = 0.0f;
+        for (int j = i + 1; j < cols - 1; j++)
+        {
+            sum += augmentedMatrix.elem[i][j] * solution.elem[j];
+        }
+        solution.elem[i] = (augmentedMatrix.elem[i][cols - 1] - sum) / augmentedMatrix.elem[i][i];
+    }
+
+    return solution;
+}
+
 rdmat_f make_rdmat_f(int rows, int cols)
 {
     rdmat_f tmp = {.rows = rows, .cols = cols, .elem = (float *)calloc(sizeof(float), rows * cols)};
@@ -202,14 +296,14 @@ rdmat pick_rows(int count, rdmat a, int *rows)
             exit(-1);
         }
         has = 0;
-        for (int j = 0; j < offset; j++)
-        {
-            if (memcmp(c.elem[j], a.elem[rows[i]], a.cols * sizeof(int)) == 0)
-            {
-                has = 1;
-                break;
-            }
-        }
+        // for (int j = 0; j < offset; j++)
+        // {
+        //     if (memcmp(c.elem[j], a.elem[rows[i]], a.cols * sizeof(int)) == 0)
+        //     {
+        //         has = 1;
+        //         break;
+        //     }
+        // }
         if (!has)
         {
             memcpy(c.elem[offset++], a.elem[rows[i]], a.cols * sizeof(int));
@@ -237,6 +331,21 @@ rdmat_f rdmat_f_mul(rdmat_f a, rdmat_f b)
     return c;
 }
 
+rdmat get_arged_mat(rdmat a)
+{
+    rdmat c = make_rdmat(a.rows, a.cols + 1);
+    for (int i = 0; i < c.rows; i++)
+    {
+        for (int j = 0; j < a.cols; j++)
+        {
+            c.elem[i][j] = a.elem[i][j];
+        }
+        c.elem[i][a.cols] = 0;
+    }
+    c.elem[0][a.cols] = 1;
+    return c;
+}
+
 void free_rdmat_f(rdmat_f a)
 {
     free(a.elem);
@@ -251,12 +360,11 @@ void free_rdmat_f(rdmat_f a)
 
 void free_rdmat(rdmat a)
 {
-    for (int i = 0; i < a.cols; i++)
+    for (int i = 0; i < a.rows; i++)
     {
         free(a.elem[i]);
     }
     free(a.elem);
-    return;
 }
 
 void free_rdmat_mp(rdmat_mp target)
@@ -277,14 +385,14 @@ void rdmat_f_print(const char *name, rdmat_f a)
     printf("%s  ", "┌");
     for (int i = 0; i < a.cols - 1; i++)
         printf("\t");
-    puts("   ┐");
+    puts("    ┐");
     for (int i = 0; i < a.rows; i++)
     {
         printf("│");
         for (int j = 0; j < a.cols; j++)
         {
 
-            printf("%.2f", a.elem[i * a.cols + j]);
+            printf("%5.2f", a.elem[i * a.cols + j]);
             if (j < a.cols - 1)
                 putchar('\t');
         }
@@ -293,7 +401,7 @@ void rdmat_f_print(const char *name, rdmat_f a)
     printf("%s  ", "└");
     for (int i = 0; i < a.cols - 1; i++)
         putchar('\t');
-    puts("   ┘");
+    puts("    ┘");
     puts("=================================================\n");
     return;
 }

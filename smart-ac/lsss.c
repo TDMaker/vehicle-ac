@@ -94,16 +94,16 @@ void init_vec(TreeNode *root)
     breadth_first_traversal(root, set_childrens_vec, NULL);
 }
 
-void get_W_rho(rdmat *W, TreeNode ***rho, TreeNode *root)
+void get_W_rho(rdmat *W, TreeNode ***rho, TreeNode *root, int is_update)
 {
-    if (W->elem != NULL)
+    if (is_update == 1)
     {
         for (int i = 0; i < W->rows; i++)
         {
             free(W->elem[i]);
         }
         free(W->elem);
-        free(*rho);
+        // free(*rho);
     }
     W->cols = cols;
     W->rows = 0;

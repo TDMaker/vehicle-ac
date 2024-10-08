@@ -2,6 +2,7 @@
 #define __UTILS_H__
 #include <math.h>
 #include <string.h>
+#include <time.h>
 #include <pbc/pbc.h>
 
 #define CAPACITY 1024
@@ -40,6 +41,7 @@ rdmat_mp make_rdmat_mp(int rows, int cols);
 rdmat_f rdmat_f_mul(rdmat_f a, rdmat_f b);
 rdmat_mp rdmat_mul_sp_mp(rdmat, rdmat_mp);
 rdmat pick_rows(int count, rdmat a, int *rows);
+rdmat get_arged_mat(rdmat a);
 rdmat_f gaussian_elimination(rdmat a);
 rdmat transpose(rdmat a);
 void rdmat_print(const char *name, rdmat a);
