@@ -19,140 +19,140 @@ rdmat_mp make_rdmat_mp(int rows, int cols)
     return tmp;
 }
 
-// element_t **rdmat_mul_sp_mp(rdmat a, rdmat_mp b)
-// {
-//     // rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
-//     element_t **c = (element_t **)malloc(sizeof(element_t *) * a.rows * b.cols);
-//     for (int i = 0; i < a.rows; i++)
-//     {
-//         for (int j = 0; j < b.cols; j++)
-//         {
-//             c[i * b.cols + j] = (element_t *)malloc(sizeof(element_t));
-//             element_init_Zr(*c[i * b.cols + j], pairing);
-//             element_set1(*c[i * b.cols + j]);
-//         }
-//     }
-//     element_t prod;
-//     element_init_Zr(prod, pairing);
-//     for (int i = 0; i < a.rows; i++)
-//     {
-//         for (int j = 0; j < b.cols; j++)
-//         {
-//             for (int k = 0; k < a.cols; k++)
-//             {
-//                 element_mul_si(prod, b.elem[k * b.cols + j], a.elem[i][k]);
-//                 element_add(*c[i * b.cols + j], *c[i * b.cols + j], prod);
-//             }
-//         }
-//     }
-//     element_clear(prod);
-//     return c;
-// }
-rdmat_mp rdmat_mul_sp_mp(rdmat a, rdmat_mp b)
+element_t **rdmat_mul_sp_mp(rdmat a, rdmat_mp b)
 {
-    rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
+    // rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
+    element_t **c = (element_t **)malloc(sizeof(element_t *) * a.rows * b.cols);
+    for (int i = 0; i < a.rows; i++)
+    {
+        for (int j = 0; j < b.cols; j++)
+        {
+            c[i * b.cols + j] = (element_t *)malloc(sizeof(element_t));
+            element_init_Zr(*c[i * b.cols + j], pairing);
+            element_set0(*c[i * b.cols + j]);
+        }
+    }
     element_t prod;
     element_init_Zr(prod, pairing);
     for (int i = 0; i < a.rows; i++)
     {
         for (int j = 0; j < b.cols; j++)
         {
-            element_set0(c.elem[i * b.cols + j]);
             for (int k = 0; k < a.cols; k++)
             {
                 element_mul_si(prod, b.elem[k * b.cols + j], a.elem[i][k]);
-                element_add(c.elem[i * c.cols + j], c.elem[i * c.cols + j], prod);
+                element_add(*c[i * b.cols + j], *c[i * b.cols + j], prod);
             }
         }
     }
     element_clear(prod);
     return c;
 }
-rdmat_f gaussian_elimination2(rdmat a)
-{
-    int m = a.rows;
-    int n = a.cols;
+// rdmat_mp rdmat_mul_sp_mp(rdmat a, rdmat_mp b)
+// {
+//     rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
+//     element_t prod;
+//     element_init_Zr(prod, pairing);
+//     for (int i = 0; i < a.rows; i++)
+//     {
+//         for (int j = 0; j < b.cols; j++)
+//         {
+//             element_set0(c.elem[i * b.cols + j]);
+//             for (int k = 0; k < a.cols; k++)
+//             {
+//                 element_mul_si(prod, b.elem[k * b.cols + j], a.elem[i][k]);
+//                 element_add(c.elem[i * c.cols + j], c.elem[i * c.cols + j], prod);
+//             }
+//         }
+//     }
+//     element_clear(prod);
+//     return c;
+// }
+// rdmat_f gaussian_elimination2(rdmat a)
+// {
+//     int m = a.rows;
+//     int n = a.cols;
 
-    // 创建必要的矩阵
-    rdmat_f aTa = make_rdmat_f(n, n);
-    rdmat_f b = make_rdmat_f(n, 1);
-    rdmat_f aTb = make_rdmat_f(n, 1);
-    b.elem[0] = 1.0f;
+//     // 创建必要的矩阵
+//     rdmat_f aTa = make_rdmat_f(n, n);
+//     rdmat_f b = make_rdmat_f(n, 1);
+//     rdmat_f aTb = make_rdmat_f(n, 1);
+//     b.elem[0] = 1.0f;
 
-    // 计算 aTa 和 aTb
-    for (int i = 0; i < n; i++)
-    {
-        aTb.elem[i] = 0.0f;
-        for (int j = 0; j < n; j++)
-        {
-            aTa.elem[i * n + j] = 0.0f;
-            for (int k = 0; k < m; k++)
-                aTa.elem[i * n + j] += a.elem[k][i] * a.elem[k][j];
-        }
-        for (int k = 0; k < m; k++)
-            aTb.elem[i] += a.elem[k][i] * b.elem[k];
-    }
+//     // 计算 aTa 和 aTb
+//     for (int i = 0; i < n; i++)
+//     {
+//         aTb.elem[i] = 0.0f;
+//         for (int j = 0; j < n; j++)
+//         {
+//             aTa.elem[i * n + j] = 0.0f;
+//             for (int k = 0; k < m; k++)
+//                 aTa.elem[i * n + j] += a.elem[k][i] * a.elem[k][j];
+//         }
+//         for (int k = 0; k < m; k++)
+//             aTb.elem[i] += a.elem[k][i] * b.elem[k];
+//     }
 
-    // 高斯消元
-    for (int i = 0; i < n; i++)
-    {
-        int maxRow = i;
-        float maxAbsPivot = fabs(aTa.elem[i * n + i]);
-        for (int j = i + 1; j < n; j++)
-        {
-            float absVal = fabs(aTa.elem[j * n + i]);
-            if (absVal > maxAbsPivot)
-            {
-                maxAbsPivot = absVal;
-                maxRow = j;
-            }
-        }
+//     // 高斯消元
+//     for (int i = 0; i < n; i++)
+//     {
+//         int maxRow = i;
+//         float maxAbsPivot = fabs(aTa.elem[i * n + i]);
+//         for (int j = i + 1; j < n; j++)
+//         {
+//             float absVal = fabs(aTa.elem[j * n + i]);
+//             if (absVal > maxAbsPivot)
+//             {
+//                 maxAbsPivot = absVal;
+//                 maxRow = j;
+//             }
+//         }
 
-        if (maxAbsPivot == 0.0f)
-        {
-            // 主元为零，无法继续消元
-            free_rdmat_f(aTa);
-            free_rdmat_f(b);
-            free_rdmat_f(aTb);
-            return make_rdmat_f(n, 1); // 返回一个空矩阵
-        }
+//         if (maxAbsPivot == 0.0f)
+//         {
+//             // 主元为零，无法继续消元
+//             free_rdmat_f(aTa);
+//             free_rdmat_f(b);
+//             free_rdmat_f(aTb);
+//             return make_rdmat_f(n, 1); // 返回一个空矩阵
+//         }
 
-        // 交换行
-        for (int k = i; k < n; k++)
-        {
-            float temp = aTa.elem[i * n + k];
-            aTa.elem[i * n + k] = aTa.elem[maxRow * n + k];
-            aTa.elem[maxRow * n + k] = temp;
-        }
-        float tempB = aTb.elem[i];
-        aTb.elem[i] = aTb.elem[maxRow];
-        aTb.elem[maxRow] = tempB;
+//         // 交换行
+//         for (int k = i; k < n; k++)
+//         {
+//             float temp = aTa.elem[i * n + k];
+//             aTa.elem[i * n + k] = aTa.elem[maxRow * n + k];
+//             aTa.elem[maxRow * n + k] = temp;
+//         }
+//         float tempB = aTb.elem[i];
+//         aTb.elem[i] = aTb.elem[maxRow];
+//         aTb.elem[maxRow] = tempB;
 
-        // 消元
-        for (int j = i + 1; j < n; j++)
-        {
-            float mult = aTa.elem[j * n + i] / aTa.elem[i * n + i];
-            aTb.elem[j] -= mult * aTb.elem[i];
-            for (int k = i; k < n; k++)
-                aTa.elem[j * n + k] -= mult * aTa.elem[i * n + k];
-        }
-    }
+//         // 消元
+//         for (int j = i + 1; j < n; j++)
+//         {
+//             float mult = aTa.elem[j * n + i] / aTa.elem[i * n + i];
+//             aTb.elem[j] -= mult * aTb.elem[i];
+//             for (int k = i; k < n; k++)
+//                 aTa.elem[j * n + k] -= mult * aTa.elem[i * n + k];
+//         }
+//     }
 
-    // 回代
-    rdmat_f c = make_rdmat_f(n, 1);
-    for (int i = n - 1; i >= 0; i--)
-    {
-        c.elem[i] = aTb.elem[i];
-        for (int j = i + 1; j < n; j++)
-            c.elem[i] -= aTa.elem[i * n + j] * c.elem[j];
-        c.elem[i] /= aTa.elem[i * n + i];
-    }
+//     // 回代
+//     rdmat_f c = make_rdmat_f(n, 1);
+//     for (int i = n - 1; i >= 0; i--)
+//     {
+//         c.elem[i] = aTb.elem[i];
+//         for (int j = i + 1; j < n; j++)
+//             c.elem[i] -= aTa.elem[i * n + j] * c.elem[j];
+//         c.elem[i] /= aTa.elem[i * n + i];
+//     }
 
-    free_rdmat_f(aTa);
-    free_rdmat_f(b);
-    free_rdmat_f(aTb);
-    return c;
-}
+//     free_rdmat_f(aTa);
+//     free_rdmat_f(b);
+//     free_rdmat_f(aTb);
+//     return c;
+// }
 
 rdmat_f gaussian_elimination(rdmat augmentedMatrix)
 {

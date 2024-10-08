@@ -97,12 +97,7 @@ void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
         element_random(vec_v.elem[i]);
     }
 
-    ip->lambda = rdmat_mul_sp_mp(ev->W, vec_v).elem;
-    printf("%d, %d\n", ev->W.rows, vec_v.cols);
-    for(int i = 0; i < L; i++)
-    {
-        element_printf("lambda[%d] is %B\n", i, ip->lambda[i]);
-    }
+    ip->lambda = rdmat_mul_sp_mp(ev->W, vec_v);
     ip->W = ev->W;
     rdmat_mp t_ = make_rdmat_mp(1, L);
     for (int i = 0; i < L; i++)
@@ -127,7 +122,7 @@ void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
     {
         ev->C1_[i] = (element_t *)malloc(sizeof(element_t));
         element_init_G1(*ev->C1_[i], pairing);
-        element_pow_zn(*ev->C1_[i], pk.w, ip->lambda[i]);
+        element_pow_zn(*ev->C1_[i], pk.w, *ip->lambda[i]);
         element_pow_zn(tmp1, pk.v, t_.elem[i]);
         element_mul(*ev->C1_[i], *(ev->C1_[i]), tmp1);
 
