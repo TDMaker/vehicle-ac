@@ -52,7 +52,7 @@ int main()
     // evidence_mod(&ev_new, ev, uev);
 
     // Clear
-    rd_cleanup(&pk, &mk, &sk, &ev, &ip);
+    // rd_cleanup(&pk, &mk, &sk, &ev, &ip);
 
     return 0;
 }

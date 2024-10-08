@@ -35,7 +35,7 @@ typedef struct
 typedef struct
 {
     rdmat W;
-    element_t **lambda;
+    element_t *lambda;
 } IP;
 
 typedef struct

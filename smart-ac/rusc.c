@@ -90,21 +90,25 @@ void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
     element_init_GT(m, pairing);
     element_from_hash(m, _m, strlen(_m));
     int L = ev->W.rows;
-    // printf("L is %d\n", L);
+    printf("L is %d\n", L);
     rdmat_mp vec_v = make_rdmat_mp(L, 1);
     for (int i = 0; i < ev->W.cols; i++)
     {
         element_random(vec_v.elem[i]);
     }
 
-    ip->lambda = rdmat_mul_sp_mp(ev->W, vec_v);
+    ip->lambda = rdmat_mul_sp_mp(ev->W, vec_v).elem;
+    printf("%d, %d\n", ev->W.rows, vec_v.cols);
+    for(int i = 0; i < L; i++)
+    {
+        element_printf("lambda[%d] is %B\n", i, ip->lambda[i]);
+    }
     ip->W = ev->W;
     rdmat_mp t_ = make_rdmat_mp(1, L);
     for (int i = 0; i < L; i++)
     {
         element_random(t_.elem[i]);
     }
-
     element_t tmp1, tmp2, tmp3;
     element_init_G1(tmp1, pairing);
     element_init_Zr(tmp2, pairing);
@@ -123,7 +127,7 @@ void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
     {
         ev->C1_[i] = (element_t *)malloc(sizeof(element_t));
         element_init_G1(*ev->C1_[i], pairing);
-        element_pow_zn(*ev->C1_[i], pk.w, *ip->lambda[i]);
+        element_pow_zn(*ev->C1_[i], pk.w, ip->lambda[i]);
         element_pow_zn(tmp1, pk.v, t_.elem[i]);
         element_mul(*ev->C1_[i], *(ev->C1_[i]), tmp1);
 
@@ -294,7 +298,7 @@ void rd_cleanup(PK *pk, MK *mk, SK *sk, EV *ev, IP *ip)
         element_clear(*ev->C1_[i]);
         element_clear(*ev->C2_[i]);
         element_clear(*ev->C3_[i]);
-        element_clear(*ip->lambda[i]);
+        // element_clear(*ip->lambda[i]);
     }
     free(ev->C1_);
     free(ev->C2_);
@@ -372,7 +376,7 @@ void policy_mod(UEV *uev, IP *ip_new, PK pk, IP *ip, EV *ev, char *pp_new)
     element_t **new_C1_ = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
     element_t **new_C2_ = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
     element_t **new_C3_ = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
-    element_t **new_lambda = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
+    // element_t **new_lambda = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
 
     for (int i = 0, j = 0; i < ev->rho.length; i++, j++)
     {
@@ -381,20 +385,20 @@ void policy_mod(UEV *uev, IP *ip_new, PK pk, IP *ip, EV *ev, char *pp_new)
             element_free(*ev->C1_[i]);
             element_free(*ev->C2_[i]);
             element_free(*ev->C3_[i]);
-            element_free(*ip->lambda[i]);
+            // element_free(*ip->lambda[i]);
             j--;
             continue;
         }
         new_C1_[j] = ev->C1_[i];
         new_C2_[j] = ev->C2_[i];
         new_C3_[j] = ev->C3_[i];
-        new_lambda[j] = ip->lambda[i];
+        // new_lambda[j] = ip->lambda[i];
     }
 
     ev->C1_ = new_C1_;
     ev->C2_ = new_C2_;
     ev->C3_ = new_C3_;
-    ip->lambda = new_lambda;
+    // ip->lambda = new_lambda;
 
     // add_or(root, "F");
     // TODO:

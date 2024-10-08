@@ -19,36 +19,55 @@ rdmat_mp make_rdmat_mp(int rows, int cols)
     return tmp;
 }
 
-element_t **rdmat_mul_sp_mp(rdmat a, rdmat_mp b)
+// element_t **rdmat_mul_sp_mp(rdmat a, rdmat_mp b)
+// {
+//     // rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
+//     element_t **c = (element_t **)malloc(sizeof(element_t *) * a.rows * b.cols);
+//     for (int i = 0; i < a.rows; i++)
+//     {
+//         for (int j = 0; j < b.cols; j++)
+//         {
+//             c[i * b.cols + j] = (element_t *)malloc(sizeof(element_t));
+//             element_init_Zr(*c[i * b.cols + j], pairing);
+//             element_set1(*c[i * b.cols + j]);
+//         }
+//     }
+//     element_t prod;
+//     element_init_Zr(prod, pairing);
+//     for (int i = 0; i < a.rows; i++)
+//     {
+//         for (int j = 0; j < b.cols; j++)
+//         {
+//             for (int k = 0; k < a.cols; k++)
+//             {
+//                 element_mul_si(prod, b.elem[k * b.cols + j], a.elem[i][k]);
+//                 element_add(*c[i * b.cols + j], *c[i * b.cols + j], prod);
+//             }
+//         }
+//     }
+//     element_clear(prod);
+//     return c;
+// }
+rdmat_mp rdmat_mul_sp_mp(rdmat a, rdmat_mp b)
 {
-    // rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
-    element_t **c = (element_t **)malloc(sizeof(element_t *) * a.rows * b.cols);
-    for (int i = 0; i < a.rows; i++)
-    {
-        for (int j = 0; j < b.cols; j++)
-        {
-            c[i * b.cols + j] = (element_t *)malloc(sizeof(element_t));
-            element_init_G1(*c[i * b.cols + j], pairing);
-        }
-    }
+    rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
     element_t prod;
     element_init_Zr(prod, pairing);
     for (int i = 0; i < a.rows; i++)
     {
         for (int j = 0; j < b.cols; j++)
         {
-            element_set0(*c[i * b.cols + j]);
+            element_set0(c.elem[i * b.cols + j]);
             for (int k = 0; k < a.cols; k++)
             {
                 element_mul_si(prod, b.elem[k * b.cols + j], a.elem[i][k]);
-                element_add(*c[i * b.cols + j], *c[i * b.cols + j], prod);
+                element_add(c.elem[i * c.cols + j], c.elem[i * c.cols + j], prod);
             }
         }
     }
     element_clear(prod);
     return c;
 }
-
 rdmat_f gaussian_elimination2(rdmat a)
 {
     int m = a.rows;
