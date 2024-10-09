@@ -1,7 +1,6 @@
 #include "lsss.h"
 int cols = 1;
 int rows = 0;
-int *tmp_elem;
 TreeNode **tmp_rho;
 
 void set_childrens_vec(TreeNode *node, void *data)
@@ -94,17 +93,8 @@ void init_vec(TreeNode *root)
     breadth_first_traversal(root, set_childrens_vec, NULL);
 }
 
-void get_W_rho(rdmat *W, TreeNode ***rho, TreeNode *root, int is_update)
+void get_W_rho(rdmat *W, ptr_list *rho, TreeNode *root)
 {
-    if (is_update == 1)
-    {
-        for (int i = 0; i < W->rows; i++)
-        {
-            free(W->elem[i]);
-        }
-        free(W->elem);
-        // free(*rho);
-    }
     W->cols = cols;
     W->rows = 0;
     W->elem = (int **)malloc(sizeof(char *) * rows);
@@ -115,9 +105,10 @@ void get_W_rho(rdmat *W, TreeNode ***rho, TreeNode *root, int is_update)
 
     tmp_rho = (TreeNode **)malloc(sizeof(TreeNode *) * rows);
     breadth_first_traversal(root, rdmat_row_concat, W);
-    *rho = tmp_rho;
+    rho->elem_ = (void**)tmp_rho;
+    (*rho).length = W->rows;
+    (*rho).capacity = W->rows;
     tmp_rho = NULL;
-    rdmat_print("W", *W);
 }
 
 void rdmat_row_concat(TreeNode *node, void *data)

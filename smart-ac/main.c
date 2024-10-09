@@ -11,7 +11,9 @@ int main()
     /**
      * PolicyInit(PK,M,PP)→{EV,IP}
      */
-    char *PP = "(E)&&((((A)&&(B))||((C)&&(D)))||(((A)||(B))&&((C)||(D))))";
+    // char *PP = "(E)&&((((A)&&(B))||((C)&&(D)))||(((A)||(B))&&((C)||(D))))";
+    char *PP = "(11)&&((((12)&&(23))||((46)&&(88)))||(((55)||(57))&&((20)||(89))))";
+    // char* PP = "E and ((A and B) or (A and C) or (B and C) or (B and D) or (C and D))";
     // char* PP = "((A)&&(B))||((C)||(D))";
     char *M = "1234567890";
     EV ev;
@@ -21,7 +23,7 @@ int main()
     /**
      * KeyDist(PK,MK,S)→{SK}
      */
-    char *S[] = {"A", "B", "E"}; // Decryption fails if any element got repeated.
+    char *S[] = {"12", "23", "11"}; // Decryption fails if any element got repeated.
     SK sk;
     key_dist(&sk, pk, mk, ev.rho, S, sizeof(S) / sizeof(S[0]));
 
@@ -40,7 +42,8 @@ int main()
     /**
      * PolicyMod(PK,IP_cur,PP_new)→{UEV,IP_new}
      */
-    char *PP_new = "(E)&&((((A)&&(B))||((C)&&(D)))||((B)&&((C)||(D))))";
+    // char *PP_new = "(E)&&((((A)&&(B))||((C)&&(D)))||((B)&&((C)||(D))))";
+    char *PP_new = "(11)&&(((23)||((46)&&(88)))||(((55)||(57))&&((20)||(89))))";
     UEV uev;
     IP ip_new;
     policy_mod(&uev, &ip_new, pk, &ip, &ev, PP_new);

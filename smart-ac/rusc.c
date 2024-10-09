@@ -2,7 +2,7 @@
 #define BUFFER_SIZE 1024
 static char buffer[BUFFER_SIZE];
 pairing_t pairing; // Pairing that should be in PK is placed in global scope so that it can be linked correctly by other compiled modules.
-TreeNode *root;
+
 State transition(State state, Label label)
 {
     switch (state + label)
@@ -74,18 +74,9 @@ void sys_init(PK *pk, MK *mk)
 }
 void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
 {
-    root = get_complete_tree(pp);
+    TreeNode *root = get_complete_tree(pp);
     breadth_first_traversal(root, display, NULL);
-    ev->W.elem = NULL;
-    get_W_rho(&(ev->W), &(ev->rho.node_), root, 0);
-    // rdmat_print("W", ev->W);
-    ev->rho.length = ev->W.rows;
-
-    // for (int i = 0; i < ev->rho.length; i++)
-    // {
-    //     puts(ev->rho.node_[i]->value);
-    // }
-
+    get_W_rho(&(ev->W), &(ev->rho), root);
     element_t m;
     element_init_GT(m, pairing);
     element_from_hash(m, _m, strlen(_m));
@@ -147,7 +138,7 @@ void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
     free_rdmat_mp(t_);
     // rd_free_tree(root);
 }
-void key_dist(SK *sk, PK pk, MK mk, RHO rho, char **s, int my_attr_size)
+void key_dist(SK *sk, PK pk, MK mk, ptr_list rho, char **s, int my_attr_size)
 {
     int S[1024] = {-1};
     sk->len_s = 0;
@@ -155,7 +146,7 @@ void key_dist(SK *sk, PK pk, MK mk, RHO rho, char **s, int my_attr_size)
     {
         for (int j = 0; j < my_attr_size; j++)
         {
-            if (strcmp(rho.node_[i]->value, s[j]) == 0)
+            if (strcmp(((TreeNode *)rho.elem_[i])->value, s[j]) == 0)
             {
                 S[sk->len_s++] = i;
             }
@@ -279,7 +270,7 @@ void rd_cleanup(PK *pk, MK *mk, SK *sk, EV *ev, IP *ip)
     // {
     //     free(ev->rho.node);
     // }
-    free(ev->rho.node_);
+    free(ev->rho.elem_);
     for (int i = 0; i < sizeof(sk->K2_) / sizeof(sk->K2_[0]); i++)
     {
         element_clear(sk->K2_[i]);
@@ -306,24 +297,28 @@ void del(EV *ev, int index);
 void add(EV *ev, int index, int trace_back, const char *connector, const char *value);
 void policy_mod(UEV *uev, IP *ip_new, PK pk, IP *ip, EV *ev, char *pp_new)
 {
+    TreeNode *new_root = get_complete_tree(pp_new);
+    breadth_first_traversal(new_root, display, NULL);
+    rdmat new_W;
+    ptr_list new_rho;
+    get_W_rho(&new_W, &new_rho, new_root);
+
+    rdmat_print("new_W", new_W);
     State new = transition(STATE_START, LABEL_ADD);
     printf("%d\n", new);
-    del(ev, 3);
-    // add(ev, 5, 0, "&&", "F");
-    init_vec(root);
-    RHO new_rho;
-    get_W_rho(&(ev->W), &(new_rho.node_), root, 1);
-    new_rho.length = ev->W.rows;
 
+    ptr_list del_list = get_diff(ev->rho, new_rho);
+
+    return;
     int row_removed = -1;
     for (int i = 0; i < ev->rho.length; i++)
     {
         int has = 0;
         for (int j = 0; j < new_rho.length; j++)
         {
-            if (ev->rho.node_[i] == new_rho.node_[j])
+            if (ev->rho.elem_[i] == new_rho.elem_[j])
             {
-                printf("ev->rho.node_[%d].val = %s\n", i, ev->rho.node_[i]->value);
+                printf("ev->rho.node_[%d].val = %s\n", i, ((TreeNode **)ev->rho.elem_)[i]->value);
                 has = 1;
                 break;
             }
@@ -347,7 +342,7 @@ void policy_mod(UEV *uev, IP *ip_new, PK pk, IP *ip, EV *ev, char *pp_new)
     {
         for (int j = 0; j < new_rho.length; j++)
         {
-            if (ev->rho.node_[i] == new_rho.node_[j])
+            if (ev->rho.elem_[i] == new_rho.elem_[j])
             {
                 tmp_W[i] = ev->W.elem[j];
                 break;
@@ -371,7 +366,7 @@ void policy_mod(UEV *uev, IP *ip_new, PK pk, IP *ip, EV *ev, char *pp_new)
     element_t **new_C1_ = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
     element_t **new_C2_ = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
     element_t **new_C3_ = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
-    // element_t **new_lambda = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
+    element_t **new_lambda = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
 
     for (int i = 0, j = 0; i < ev->rho.length; i++, j++)
     {
@@ -380,14 +375,14 @@ void policy_mod(UEV *uev, IP *ip_new, PK pk, IP *ip, EV *ev, char *pp_new)
             element_free(*ev->C1_[i]);
             element_free(*ev->C2_[i]);
             element_free(*ev->C3_[i]);
-            // element_free(*ip->lambda[i]);
+            element_free(*ip->lambda[i]);
             j--;
             continue;
         }
         new_C1_[j] = ev->C1_[i];
         new_C2_[j] = ev->C2_[i];
         new_C3_[j] = ev->C3_[i];
-        // new_lambda[j] = ip->lambda[i];
+        new_lambda[j] = ip->lambda[i];
     }
 
     ev->C1_ = new_C1_;
@@ -412,7 +407,7 @@ void del(EV *ev, int index)
         puts("Index exceeds boundary!");
         return;
     }
-    TreeNode *node = ev->rho.node_[index];
+    TreeNode *node = ev->rho.elem_[index];
     TreeNode *sibling = node->parent->left == node ? node->parent->right : node->parent->left;
     if (strcmp(node->parent->value, "||") == 0)
     {
@@ -446,9 +441,9 @@ void del(EV *ev, int index)
     // update the address recorded in the old rho.
     for (int i = 0; i < ev->rho.length; i++)
     {
-        if (ev->rho.node_[i] == sibling)
+        if (ev->rho.elem_[i] == sibling)
         {
-            ev->rho.node_[i] = sibling->parent;
+            ev->rho.elem_[i] = sibling->parent;
             break;
         }
     }
@@ -461,7 +456,7 @@ void add(EV *ev, int index, int trace_back, const char *connector, const char *v
         puts("Index exceeds boundary!");
         return;
     }
-    TreeNode *new_parent = ev->rho.node_[index];
+    TreeNode *new_parent = ev->rho.elem_[index];
     for (int i = 0; i < trace_back; i++)
     {
         if (new_parent->parent != NULL)

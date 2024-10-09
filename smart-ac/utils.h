@@ -32,6 +32,13 @@ typedef struct
     element_t *elem;
 } rdmat_mp;
 
+typedef struct
+{
+    void **elem_;
+    int length;
+    int capacity;
+} ptr_list;
+
 rdvec make_rdvec();
 rdvec cpy_rdvec(rdvec a);
 rdmat make_rdmat(int rows, int cols);
@@ -49,5 +56,5 @@ void free_rdvec(rdvec a);
 void free_rdmat(rdmat a);
 void free_rdmat_f(rdmat_f a);
 void free_rdmat_mp(rdmat_mp a);
-
+ptr_list make_ptr_list(int capacity);
 #endif /* __UTILS_H__ */

@@ -64,7 +64,6 @@ Token next_token(Parser *parser)
         parser->current.text[len] = '\0';
         parser->current.type = TOKEN_KEYWORD;
     }
-
     return parser->current;
 }
 

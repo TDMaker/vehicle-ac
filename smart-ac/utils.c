@@ -1,6 +1,19 @@
 #include "utils.h"
 extern pairing_t pairing;
 
+ptr_list make_ptr_list(int capacity)
+{
+    int _capacity = capacity == 0 ? CAPACITY : capacity;
+    ptr_list c = {.capacity = CAPACITY, .length = 0, .elem_ = (void **)malloc(sizeof(void *) * _capacity)};
+    if (c.elem_ == NULL)
+    {
+        printf("length %d\n", capacity);
+        fprintf(stderr, "ptr_list alloc failed!\n");
+        exit(-1);
+    }
+    return c;
+}
+
 rdmat_mp make_rdmat_mp(int rows, int cols)
 {
     rdmat_mp tmp = {.rows = rows, .cols = cols, .elem = (element_t *)malloc(sizeof(element_t) * rows * cols)};

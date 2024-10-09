@@ -2,6 +2,7 @@
 #define __RUSC_H__
 #include "lsss.h"
 #include "utils.h"
+#include "tree.h"
 
 typedef struct
 {
@@ -15,11 +16,11 @@ typedef struct
 
 typedef element_t MK;
 
-typedef struct
-{
-    TreeNode **node_;
-    int length;
-} RHO;
+// typedef struct
+// {
+//     TreeNode **node_;
+//     int length;
+// } RHO;
 
 typedef struct
 {
@@ -29,7 +30,7 @@ typedef struct
     element_t **C2_;
     element_t **C3_;
     rdmat W;
-    RHO rho;
+    ptr_list rho;
 } EV;
 
 typedef struct
@@ -75,7 +76,7 @@ typedef struct
 
 void sys_init(PK *, MK *);
 void policy_init(EV *, IP *, PK, char *M, char *PP);
-void key_dist(SK *, PK, MK, RHO, char **S, int size);
+void key_dist(SK *, PK, MK, ptr_list, char **S, int size);
 int verify(char *, EV, SK);
 void rd_cleanup(PK *, MK *, SK *, EV *, IP *);
 void policy_mod(UEV *, IP *, PK, IP *, EV *, char *pp);
