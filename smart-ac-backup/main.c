@@ -30,7 +30,7 @@ int main()
     /**
      * Verify(M,EV,SK)→{0,1}
      */
-    if (verify(M, ev, sk, S, sizeof(S) / sizeof(S[0])))
+    if (verify(M, ev, sk))
     {
         puts("Decryption succeed.\n");
     }
@@ -48,7 +48,7 @@ int main()
     // "(((12)&&(23))||((46)&&(88)))||(((55)||(11))&&((20)||(89)))";
     UEV uev;
     IP ip_new;
-    // policy_mod(&uev, &ip_new, pk, &ip, &ev, PP_new);
+    policy_mod(&uev, &ip_new, pk, &ip, &ev, PP_new);
 
     /**
      * EvidMod(EV_cur,UEV)→{EV_new}

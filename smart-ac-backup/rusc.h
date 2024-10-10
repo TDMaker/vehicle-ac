@@ -3,7 +3,6 @@
 #include "lsss.h"
 #include "utils.h"
 #include "tree.h"
-#include "hashmap.h"
 
 typedef struct
 {
@@ -27,7 +26,9 @@ typedef struct
 {
     element_t C;
     element_t C0;
-    HashMap *CX_;
+    element_t **C1_;
+    element_t **C2_;
+    element_t **C3_;
     rdmat W;
     ptr_list rho;
 } EV;
@@ -35,15 +36,17 @@ typedef struct
 typedef struct
 {
     rdmat W;
-    HashMap *lambda;
+    element_t **lambda;
 } IP;
 
 typedef struct
 {
-    int* my_rho;
+    int *s;
+    int len_s;
     element_t K0;
     element_t K1;
-    HashMap *KX_;
+    element_t *K2_;
+    element_t *K3_;
 } SK;
 
 typedef enum
@@ -74,7 +77,7 @@ typedef struct
 void sys_init(PK *, MK *);
 void policy_init(EV *, IP *, PK, char *M, char *PP);
 void key_dist(SK *, PK, MK, ptr_list, char **S, int size);
-int verify(char *_m, EV ev, SK sk, char **s, int my_attr_size);
+int verify(char *, EV, SK);
 void rd_cleanup(PK *, MK *, SK *, EV *, IP *);
 void policy_mod(UEV *, IP *, PK, IP *, EV *, char *pp);
 void evidence_mod(EV *, EV, UEV);
@@ -82,6 +85,4 @@ void evidence_mod(EV *, EV, UEV);
 void del_or(TreeNode *node, void *data);
 void del_and(TreeNode *node, void *data);
 void add_or(TreeNode *sibling, void *data);
-
-HashMap *get_lambda(rdmat a, ptr_list rho, rdmat_mp b);
 #endif /* __RUSC_H__ */

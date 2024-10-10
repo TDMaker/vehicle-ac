@@ -88,7 +88,7 @@ void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
         element_random(vec_v.elem[i]);
     }
 
-    ip->lambda = get_lambda(ev->W, ev->rho, vec_v);
+    ip->lambda = rdmat_mul_sp_mp(ev->W, vec_v);
     ip->W = ev->W;
     rdmat_mp t_ = make_rdmat_mp(1, L);
     for (int i = 0; i < L; i++)
@@ -106,27 +106,28 @@ void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
 
     element_init_G1(ev->C0, pairing);
     element_pow_zn(ev->C0, pk.g, vec_v.elem[0]);
-    ev->CX_ = initHashMap();
-    for (int i = 0; i < ev->rho.length; i++)
+    ev->C1_ = (element_t **)malloc(sizeof(element_t *) * L);
+    ev->C2_ = (element_t **)malloc(sizeof(element_t *) * L);
+    ev->C3_ = (element_t **)malloc(sizeof(element_t *) * L);
+    for (int i = 0; i < L; i++)
     {
-        char *attribute = ((TreeNode *)ev->rho.elem_[i])->value;
-        element_t *tmpC = (element_t *)malloc(3 * sizeof(element_t));
-        element_init_G1(tmpC[0], pairing);
-        element_pow_zn(tmpC[0], pk.w, map_search(ip->lambda, attribute));
+        ev->C1_[i] = (element_t *)malloc(sizeof(element_t));
+        element_init_G1(*ev->C1_[i], pairing);
+        element_pow_zn(*ev->C1_[i], pk.w, *ip->lambda[i]);
         element_pow_zn(tmp1, pk.v, t_.elem[i]);
-        element_mul(tmpC[0], tmpC[0], tmp1);
+        element_mul(*ev->C1_[i], *(ev->C1_[i]), tmp1);
 
-        element_init_G1(tmpC[1], pairing);
-        element_from_hash(tmp2, attribute, strlen(attribute));
-        element_pow_zn(tmpC[1], pk.u, tmp2);
-        element_mul(tmpC[1], tmpC[1], pk.h);
+        ev->C2_[i] = (element_t *)malloc(sizeof(element_t));
+        element_init_G1(*ev->C2_[i], pairing);
+        element_set_si(tmp2, i);
+        element_pow_zn(*ev->C2_[i], pk.u, tmp2);
+        element_mul(*ev->C2_[i], *ev->C2_[i], pk.h);
         element_neg(tmp2, t_.elem[i]);
-        element_pow_zn(tmpC[1], tmpC[1], tmp2);
+        element_pow_zn(*ev->C2_[i], *ev->C2_[i], tmp2);
 
-        element_init_G1(tmpC[2], pairing);
-        element_pow_zn(tmpC[2], pk.g, t_.elem[i]);
-
-        map_insert(ev->CX_, attribute, tmpC);
+        ev->C3_[i] = (element_t *)malloc(sizeof(element_t));
+        element_init_G1(*ev->C3_[i], pairing);
+        element_pow_zn(*ev->C3_[i], pk.g, t_.elem[i]);
     }
 
     element_clear(tmp1);
@@ -139,52 +140,46 @@ void policy_init(EV *ev, IP *ip, PK pk, char *_m, char *pp)
 }
 void key_dist(SK *sk, PK pk, MK mk, ptr_list rho, char **s, int my_attr_size)
 {
-    element_t *r_ = (element_t *)malloc(sizeof(element_t) * (my_attr_size + 1));
-    sk->my_rho = (int *)malloc(sizeof(int) * my_attr_size);
-    int offset = 0;
-
-    sk->KX_ = initHashMap();
-
-    element_init_Zr(r_[my_attr_size], pairing);
-    element_random(r_[my_attr_size]);
-    element_t neg_r, v2neg_r, attr;
-    element_init_Zr(neg_r, pairing);
-    element_neg(neg_r, r_[my_attr_size]);
-    element_init_G1(v2neg_r, pairing);
-    element_pow_zn(v2neg_r, pk.v, neg_r);
-    element_init_Zr(attr, pairing);
-
-    for (int i = 0; i < my_attr_size; i++)
+    int S[1024] = {-1};
+    sk->len_s = 0;
+    for (int i = 0; i < rho.length; i++)
     {
-        char *attribute = s[i];
-        for (int j = 0; j < rho.length; j++)
+        for (int j = 0; j < my_attr_size; j++)
         {
-            if (strcmp(attribute, ((TreeNode *)rho.elem_[j])->value) == 0)
+            if (strcmp(((TreeNode *)rho.elem_[i])->value, s[j]) == 0)
             {
-                sk->my_rho[offset++] = j;
-                break;
+                S[sk->len_s++] = i;
             }
         }
-        element_t *tmp = (element_t *)malloc(2 * sizeof(element_t));
+    }
+    sk->s = (int *)malloc(sizeof(int) * sk->len_s);
+    memcpy(sk->s, S, sizeof(int) * sk->len_s);
+
+    element_t *r_ = (element_t *)malloc(sizeof(element_t) * (sk->len_s + 1));
+    sk->K2_ = (element_t *)malloc(sizeof(element_t) * sk->len_s);
+    sk->K3_ = (element_t *)malloc(sizeof(element_t) * sk->len_s);
+
+    element_init_Zr(r_[sk->len_s], pairing);
+    element_random(r_[sk->len_s]);
+    element_t neg_r, v2neg_r, i_mp;
+    element_init_Zr(neg_r, pairing);
+    element_neg(neg_r, r_[sk->len_s]);
+    element_init_G1(v2neg_r, pairing);
+    element_pow_zn(v2neg_r, pk.v, neg_r);
+    element_init_Zr(i_mp, pairing);
+
+    for (int i = 0; i < sk->len_s; i++)
+    {
         element_init_Zr(r_[i], pairing);
         element_random(r_[i]);
-
-        element_init_G1(tmp[0], pairing);
-        element_pow_zn(tmp[0], pk.g, r_[i]);
-
-        element_init_G1(tmp[1], pairing);
-
-        element_from_hash(attr, attribute, strlen(attribute));
-
-        element_pow_zn(tmp[1], pk.u, attr);
-
-        element_mul(tmp[1], tmp[1], pk.h);
-
-        element_pow_zn(tmp[1], tmp[1], r_[i]);
-
-        element_mul(tmp[1], tmp[1], v2neg_r);
-
-        map_insert(sk->KX_, attribute, tmp);
+        element_init_G1(sk->K2_[i], pairing);
+        element_pow_zn(sk->K2_[i], pk.g, r_[i]);
+        element_init_G1(sk->K3_[i], pairing);
+        element_set_si(i_mp, S[i]);
+        element_pow_zn(sk->K3_[i], pk.u, i_mp);
+        element_mul(sk->K3_[i], sk->K3_[i], pk.h);
+        element_pow_zn(sk->K3_[i], sk->K3_[i], r_[i]);
+        element_mul(sk->K3_[i], sk->K3_[i], v2neg_r);
     }
 
     element_init_G1(sk->K0, pairing);
@@ -192,27 +187,27 @@ void key_dist(SK *sk, PK pk, MK mk, ptr_list rho, char **s, int my_attr_size)
     element_t tmp_exp;
     element_init_G1(tmp_exp, pairing);
     element_pow_zn(sk->K0, pk.g, mk);
-    element_pow_zn(tmp_exp, pk.w, r_[my_attr_size]);
+    element_pow_zn(tmp_exp, pk.w, r_[sk->len_s]);
     element_mul(sk->K0, sk->K0, tmp_exp);
-    element_pow_zn(sk->K1, pk.g, r_[my_attr_size]);
+    element_pow_zn(sk->K1, pk.g, r_[sk->len_s]);
 
     element_clear(neg_r);
     element_clear(v2neg_r);
-    element_clear(attr);
+    element_clear(i_mp);
     element_clear(tmp_exp);
-    for (int i = 0; i < my_attr_size + 1; i++)
+    for (int i = 0; i < sk->len_s + 1; i++)
     {
         element_clear(r_[i]);
     }
     free(r_);
 }
-int verify(char *_m, EV ev, SK sk, char **s, int my_attr_size)
+int verify(char *_m, EV ev, SK sk)
 {
     element_t m;
     element_init_GT(m, pairing);
     element_from_hash(m, _m, strlen(_m));
 
-    rdmat rows_picked = pick_rows(my_attr_size, ev.W, sk.my_rho);
+    rdmat rows_picked = pick_rows(sk.len_s, ev.W, sk.s);
     rdmat_print("rows_picked", rows_picked);
 
     rdmat W_T = transpose(rows_picked);
@@ -227,12 +222,13 @@ int verify(char *_m, EV ev, SK sk, char **s, int my_attr_size)
     element_init_GT(B, pairing);
     element_init_Zr(omega_mp, pairing);
     element_set1(B);
-    for (int i = 0; i < my_attr_size; i++)
+
+    for (int i = 0; i < sk.len_s; i++)
     {
-        pairing_apply(B_i, ((element_t *)map_search(ev.CX_, s[i]))[0], sk.K1, pairing);
-        pairing_apply(prod, ((element_t *)map_search(ev.CX_, s[i]))[1], ((element_t *)map_search(sk.KX_, s[i]))[0], pairing);
+        pairing_apply(B_i, *ev.C1_[sk.s[i]], sk.K1, pairing);
+        pairing_apply(prod, (*ev.C2_[sk.s[i]]), sk.K2_[i], pairing);
         element_mul(B_i, B_i, prod);
-        pairing_apply(prod, ((element_t *)map_search(ev.CX_, s[i]))[2], ((element_t *)map_search(sk.KX_, s[i]))[1], pairing);
+        pairing_apply(prod, *ev.C3_[sk.s[i]], sk.K3_[i], pairing);
         element_mul(B_i, B_i, prod);
 
         element_set_si(omega_mp, i >= omega.rows ? 0 : omega.elem[i]);
@@ -256,7 +252,6 @@ int verify(char *_m, EV ev, SK sk, char **s, int my_attr_size)
     free_rdmat_f(omega);
     return result;
 }
-/*
 void rd_cleanup(PK *pk, MK *mk, SK *sk, EV *ev, IP *ip)
 {
     element_clear(pk->g);
@@ -298,7 +293,6 @@ void rd_cleanup(PK *pk, MK *mk, SK *sk, EV *ev, IP *ip)
 
     pairing_clear(pairing);
 }
-*/
 void del(EV *ev, int index);
 void add(EV *ev, int index, int trace_back, const char *connector, const char *value);
 void policy_mod(UEV *uev, IP *ip_new, PK pk, IP *ip, EV *ev, char *pp_new)
@@ -315,92 +309,96 @@ void policy_mod(UEV *uev, IP *ip_new, PK pk, IP *ip, EV *ev, char *pp_new)
 
     // ptr_list del_list = get_diff(ev->rho, new_rho);
     Result result = get_result(ev->rho, new_rho);
-    for (int i = 0; i < result.deleted_attributes_connected_by_or.length; i++)
+    for(int i = 0; i < result.deleted_attributes_connected_by_or.length; i++)
     {
-        element_t *tmp = map_search(ip->lambda, ((TreeNode *)result.deleted_attributes_connected_by_or.elem_[i])->value);
-        element_free(*tmp);
-        map_remove(ip->lambda, ((TreeNode *)result.deleted_attributes_connected_by_or.elem_[i])->value);
+        
     }
 
+
+
+
+
+
+
     return;
-    // int row_removed = -1;
-    // for (int i = 0; i < ev->rho.length; i++)
-    // {
-    //     int has = 0;
-    //     for (int j = 0; j < new_rho.length; j++)
-    //     {
-    //         if (ev->rho.elem_[i] == new_rho.elem_[j])
-    //         {
-    //             printf("ev->rho.node_[%d].val = %s\n", i, ((TreeNode **)ev->rho.elem_)[i]->value);
-    //             has = 1;
-    //             break;
-    //         }
-    //     }
-    //     if (has == 0)
-    //     {
-    //         row_removed = i;
-    //         break;
-    //     }
-    // }
+    int row_removed = -1;
+    for (int i = 0; i < ev->rho.length; i++)
+    {
+        int has = 0;
+        for (int j = 0; j < new_rho.length; j++)
+        {
+            if (ev->rho.elem_[i] == new_rho.elem_[j])
+            {
+                printf("ev->rho.node_[%d].val = %s\n", i, ((TreeNode **)ev->rho.elem_)[i]->value);
+                has = 1;
+                break;
+            }
+        }
+        if (has == 0)
+        {
+            row_removed = i;
+            break;
+        }
+    }
 
-    // printf("The %dth node has been removed.\n", row_removed);
+    printf("The %dth node has been removed.\n", row_removed);
 
-    // int **tmp_W = (int **)malloc(sizeof(int *) * ev->W.rows);
-    // for (int i = 0; i < ev->W.rows; i++)
-    // {
-    //     tmp_W[i] = NULL;
-    // }
+    int **tmp_W = (int **)malloc(sizeof(int *) * ev->W.rows);
+    for (int i = 0; i < ev->W.rows; i++)
+    {
+        tmp_W[i] = NULL;
+    }
 
-    // for (int i = 0; i < ev->rho.length; i++)
-    // {
-    //     for (int j = 0; j < new_rho.length; j++)
-    //     {
-    //         if (ev->rho.elem_[i] == new_rho.elem_[j])
-    //         {
-    //             tmp_W[i] = ev->W.elem[j];
-    //             break;
-    //         }
-    //     }
-    // }
-    // for (int i = 0; i < new_rho.length; i++)
-    // {
-    //     if (tmp_W[i] == NULL)
-    //     {
-    //         for (int j = i; j < new_rho.length; j++)
-    //         {
-    //             tmp_W[j] = tmp_W[j + 1];
-    //         }
-    //     }
-    // }
-    // free(ev->W.elem);
-    // ev->W.elem = tmp_W;
-    // rdmat_print("new W", ev->W);
+    for (int i = 0; i < ev->rho.length; i++)
+    {
+        for (int j = 0; j < new_rho.length; j++)
+        {
+            if (ev->rho.elem_[i] == new_rho.elem_[j])
+            {
+                tmp_W[i] = ev->W.elem[j];
+                break;
+            }
+        }
+    }
+    for (int i = 0; i < new_rho.length; i++)
+    {
+        if (tmp_W[i] == NULL)
+        {
+            for (int j = i; j < new_rho.length; j++)
+            {
+                tmp_W[j] = tmp_W[j + 1];
+            }
+        }
+    }
+    free(ev->W.elem);
+    ev->W.elem = tmp_W;
+    rdmat_print("new W", ev->W);
 
-    // element_t **new_C1_ = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
-    // element_t **new_C2_ = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
-    // element_t **new_C3_ = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
-    // element_t **new_lambda = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
+    element_t **new_C1_ = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
+    element_t **new_C2_ = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
+    element_t **new_C3_ = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
+    element_t **new_lambda = (element_t **)malloc(sizeof(element_t *) * new_rho.length);
 
-    // for (int i = 0, j = 0; i < ev->rho.length; i++, j++)
-    // {
-    //     if (i == row_removed)
-    //     {
-    //         element_free(*ev->C1_[i]);
-    //         element_free(*ev->C2_[i]);
-    //         element_free(*ev->C3_[i]);
-    //         element_free(*ip->lambda[i]);
-    //         j--;
-    //         continue;
-    //     }
-    //     new_C1_[j] = ev->C1_[i];
-    //     new_C2_[j] = ev->C2_[i];
-    //     new_C3_[j] = ev->C3_[i];
-    //     new_lambda[j] = ip->lambda[i];
-    // }
+    for (int i = 0, j = 0; i < ev->rho.length; i++, j++)
+    {
+        if (i == row_removed)
+        {
+            element_free(*ev->C1_[i]);
+            element_free(*ev->C2_[i]);
+            element_free(*ev->C3_[i]);
+            element_free(*ip->lambda[i]);
+            j--;
+            continue;
+        }
+        new_C1_[j] = ev->C1_[i];
+        new_C2_[j] = ev->C2_[i];
+        new_C3_[j] = ev->C3_[i];
+        new_lambda[j] = ip->lambda[i];
+    }
 
-    // ev->C1_ = new_C1_;
-    // ev->C2_ = new_C2_;
-    // ev->C3_ = new_C3_;
+    ev->C1_ = new_C1_;
+    ev->C2_ = new_C2_;
+    ev->C3_ = new_C3_;
     // ip->lambda = new_lambda;
 
     // add_or(root, "F");
@@ -519,30 +517,4 @@ void add(EV *ev, int index, int trace_back, const char *connector, const char *v
         puts("Unknown connector to be added!");
         return;
     }
-}
-
-HashMap *get_lambda(rdmat a, ptr_list rho, rdmat_mp b)
-{
-    HashMap *map = initHashMap();
-    rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
-    element_t prod;
-    element_init_Zr(prod, pairing);
-    for (int i = 0; i < a.rows; i++)
-    {
-        for (int j = 0; j < b.cols; j++)
-        {
-            element_set0(c.elem[i * b.cols + j]);
-            for (int k = 0; k < a.cols; k++)
-            {
-                element_mul_si(prod, b.elem[k * b.cols + j], a.elem[i][k]);
-                element_add(c.elem[i * c.cols + j], c.elem[i * c.cols + j], prod);
-            }
-        }
-    }
-    element_clear(prod);
-    for (int i = 0; i < rho.length; i++)
-    {
-        map_insert(map, ((TreeNode *)rho.elem_[i])->value, c.elem[i]);
-    }
-    return map;
 }
