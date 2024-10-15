@@ -40,6 +40,27 @@ typedef struct
     int capacity;
 } ptr_list;
 
+
+typedef enum
+{
+    LABEL_ADD = 10,
+    LABEL_DELETE = 20,
+    LABEL_MULTIPLY = 30,
+    LABEL_NOP = 0,
+} Label;
+
+typedef enum
+{
+    STATE_START = 1,
+    STATE_DELETE = 2,
+    STATE_ADD = 3,
+    STATE_MULTIPLY = 4,
+    STATE_ADD_ = 5,
+    STATE_MULTIPLY_ = 6,
+    STATE_REPLACE = 7,
+    STATE_UNKNOWN = 8,
+} State;
+
 rdvec make_rdvec();
 rdvec cpy_rdvec(rdvec a);
 rdmat make_rdmat(int rows, int cols);
@@ -58,4 +79,7 @@ void free_rdmat(rdmat a);
 void free_rdmat_f(rdmat_f a);
 void free_rdmat_mp(rdmat_mp a);
 ptr_list make_ptr_list(int capacity);
+State transition(State state, Label label);
+void print_state(const char *name, State state);
+ptr_list add_to_list(ptr_list a, void *b);
 #endif /* __UTILS_H__ */

@@ -15,7 +15,7 @@ typedef struct
     QueueNode *rear;
 } Queue;
 
-typedef void (*my_operator)(TreeNode *a, void *data);
+typedef void (*my_operator)(TreeNode *a, void **food);
 
 typedef enum
 {
@@ -24,6 +24,6 @@ typedef enum
     DISPLAY,
 } OP_TYPE;
 
-void breadth_first_traversal(TreeNode *root, my_operator op, void *data);
+void breadth_first_traversal(TreeNode *root, my_operator op, void **food);
 void free_tree(TreeNode *node);
 #endif /* __ACT_VISITOR_H__ */

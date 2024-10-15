@@ -22,4 +22,5 @@ HashMap *initHashMap();
 bool map_insert(HashMap *hashMap, const char *key, void* value);
 void *map_search(HashMap *hashMap, const char *key);
 bool map_remove(HashMap *hashMap, const char *key);
+bool map_update(HashMap *hashMap, const char *key, void* newValue);
 #endif /* __HASHMAP_H__ */

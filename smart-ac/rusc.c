@@ -3,39 +3,6 @@
 static char buffer[BUFFER_SIZE];
 pairing_t pairing; // Pairing that should be in PK is placed in global scope so that it can be linked correctly by other compiled modules.
 
-State transition(State state, Label label)
-{
-    switch (state + label)
-    {
-    case STATE_START + LABEL_ADD:
-        return STATE_ADD;
-    case STATE_START + LABEL_DELETE:
-        return STATE_DELETE;
-    case STATE_START + LABEL_MULTIPLY:
-        return STATE_MULTIPLY;
-    case STATE_ADD + LABEL_MULTIPLY:
-        return STATE_MULTIPLY;
-    case STATE_ADD + LABEL_DELETE:
-        return STATE_DELETE;
-    case STATE_MULTIPLY + LABEL_MULTIPLY:
-        return STATE_MULTIPLY;
-    case STATE_MULTIPLY + LABEL_DELETE:
-        return STATE_DELETE;
-    case STATE_DELETE + LABEL_ADD:
-        return STATE_ADD_;
-    case STATE_ADD_ + LABEL_DELETE:
-        return STATE_DELETE;
-    case STATE_ADD_ + LABEL_MULTIPLY:
-        return STATE_MULTIPLY_;
-    case STATE_MULTIPLY_ + LABEL_MULTIPLY:
-        return STATE_MULTIPLY_;
-    case STATE_MULTIPLY_ + LABEL_DELETE:
-        return STATE_DELETE;
-    default:
-        return STATE_UNKNOWN;
-    }
-}
-
 int init_pairing()
 {
     FILE *fp = NULL;
@@ -310,17 +277,249 @@ void policy_mod(UEV *uev, IP *ip_new, PK pk, IP *ip, EV *ev, char *pp_new)
     get_W_rho(&new_W, &new_rho, new_root);
 
     rdmat_print("new_W", new_W);
-    State new = transition(STATE_START, LABEL_ADD);
-    printf("%d\n", new);
 
-    // ptr_list del_list = get_diff(ev->rho, new_rho);
     Result result = get_result(ev->rho, new_rho);
+    uev->states = initHashMap();
+    uev->CX_ = initHashMap();
+    for (int i = 0; i < new_rho.length; i++)
+    {
+        const char *attribute = ((TreeNode *)new_rho.elem_[i])->value;
+        puts(attribute);
+        element_t *tmpC = (element_t *)malloc(3 * sizeof(element_t));
+        element_init_G1(tmpC[0], pairing);
+        element_init_G1(tmpC[1], pairing);
+        element_init_G1(tmpC[2], pairing);
+        element_set1(tmpC[0]);
+        element_set1(tmpC[1]);
+        element_set1(tmpC[2]);
+        map_insert(uev->CX_, attribute, tmpC);
+        printf("Inserting %s\n", attribute);
+    }
     for (int i = 0; i < result.deleted_attributes_connected_by_or.length; i++)
     {
-        element_t *tmp = map_search(ip->lambda, ((TreeNode *)result.deleted_attributes_connected_by_or.elem_[i])->value);
-        element_free(*tmp);
-        map_remove(ip->lambda, ((TreeNode *)result.deleted_attributes_connected_by_or.elem_[i])->value);
+        TreeNode *this_node = (TreeNode *)result.deleted_attributes_connected_by_or.elem_[i];
+        map_remove(uev->CX_, this_node->value);
+        state_update(uev->states, this_node, LABEL_DELETE);
+        map_remove(ip->lambda, this_node->value);
     }
+    for (int i = 0; i < result.deleted_attributes_connected_by_and.length; i++)
+    {
+        TreeNode *this_node = (TreeNode *)result.deleted_attributes_connected_by_and.elem_[i];
+        map_remove(uev->CX_, this_node->value);
+        element_t *_lambda_A = map_search(ip->lambda, this_node->value);
+        ptr_list the_affected = get_the_affected(this_node, result.the_remains);
+
+        for (int j = 0; j < the_affected.length; j++)
+        {
+            TreeNode *inner_node = (TreeNode *)the_affected.elem_[j];
+            element_t *_lambda_i = (element_t *)map_search(ip->lambda, inner_node->value);
+            element_add(*_lambda_i, *_lambda_i, *_lambda_A);
+
+            element_t *tmpCp = map_search(uev->CX_, inner_node->value);
+            if (tmpCp != NULL)
+            {
+                element_t t_j;
+                element_init_Zr(t_j, pairing);
+                element_random(t_j);
+                element_t tmp1, tmp2, tmp3;
+                element_init_G1(tmp1, pairing);
+                element_init_G1(tmp2, pairing);
+                element_init_Zr(tmp3, pairing);
+                element_pow_zn(tmp1, pk.w, *_lambda_A);
+                element_pow_zn(tmp2, pk.v, t_j);
+                element_mul(tmp1, tmp1, tmp2);
+                element_mul(tmpCp[0], tmpCp[0], tmp1);
+
+                element_from_hash(tmp3, inner_node->value, strlen(inner_node->value));
+                element_pow_zn(tmp1, pk.u, tmp3);
+                element_mul(tmp1, tmp1, pk.h);
+                element_neg(tmp3, t_j);
+                element_pow_zn(tmp1, tmp1, tmp3);
+                element_mul(tmpCp[1], tmpCp[1], tmp1);
+
+                element_pow_zn(tmp1, pk.g, t_j);
+                element_mul(tmpCp[2], tmpCp[2], tmp1);
+
+                element_clear(t_j);
+                element_clear(tmp1);
+                element_clear(tmp2);
+                element_clear(tmp3);
+
+                state_update(uev->states, inner_node, LABEL_MULTIPLY);
+            }
+        }
+
+        state_update(uev->states, this_node, LABEL_DELETE);
+    }
+
+    for (int i = 0; i < result.added_attributes_connected_by_or.length; i++)
+    {
+        TreeNode *this_node = (TreeNode *)result.added_attributes_connected_by_or.elem_[i];
+        TreeNode *sibling = get_sibling(this_node);
+        // printf("This node is %s, The sibling is %s\n", this_node->value, sibling->value);
+        element_t *_lambda_A = (element_t *)malloc(sizeof(element_t));
+        element_init_Zr(*_lambda_A, pairing);
+        element_set(*_lambda_A, *(element_t *)map_search(ip->lambda, sibling->value));
+        map_insert(ip->lambda, this_node->value, _lambda_A);
+
+        element_t *tmpC = map_search(uev->CX_, this_node->value);
+
+        if (tmpC == NULL)
+        {
+            tmpC = (element_t *)malloc(3 * sizeof(element_t));
+            element_init_G1(tmpC[0], pairing);
+            element_init_G1(tmpC[1], pairing);
+            element_init_G1(tmpC[2], pairing);
+            element_set1(tmpC[0]);
+            element_set1(tmpC[1]);
+            element_set1(tmpC[2]);
+            map_insert(uev->CX_, this_node->value, tmpC);
+        }
+
+        element_t t_A;
+        element_init_Zr(t_A, pairing);
+        element_random(t_A);
+        element_t tmp1, tmp2, tmp3;
+        element_init_G1(tmp1, pairing);
+        element_init_G1(tmp2, pairing);
+        element_init_Zr(tmp3, pairing);
+        element_pow_zn(tmp1, pk.w, *_lambda_A);
+        element_pow_zn(tmp2, pk.v, t_A);
+        element_mul(tmpC[0], tmp1, tmp2);
+
+        element_from_hash(tmp3, this_node->value, strlen(this_node->value));
+        element_pow_zn(tmp1, pk.u, tmp3);
+        element_mul(tmp1, tmp1, pk.h);
+        element_neg(tmp3, t_A);
+        element_pow_zn(tmpC[1], tmp1, tmp3);
+
+        element_pow_zn(tmpC[2], pk.g, t_A);
+
+        element_clear(t_A);
+        element_clear(tmp1);
+        element_clear(tmp2);
+        element_clear(tmp3);
+
+        state_update(uev->states, this_node, LABEL_ADD);
+    }
+ 
+    for (int i = result.added_attributes_connected_by_and.length - 1; i > 0; i--)
+    {
+        TreeNode *this_node = (TreeNode *)result.added_attributes_connected_by_and.elem_[i];
+
+        element_t _lambda_A, y_A;
+        element_init_Zr(_lambda_A, pairing);
+        element_init_Zr(y_A, pairing);
+        element_random(y_A);
+        element_neg(_lambda_A, y_A);
+        map_insert(ip->lambda, this_node->value, _lambda_A);
+
+        element_t *tmpC = map_search(uev->CX_, this_node->value);
+
+        if (tmpC == NULL)
+        {
+            tmpC = (element_t *)malloc(3 * sizeof(element_t));
+            element_init_G1(tmpC[0], pairing);
+            element_init_G1(tmpC[1], pairing);
+            element_init_G1(tmpC[2], pairing);
+            element_set1(tmpC[0]);
+            element_set1(tmpC[1]);
+            element_set1(tmpC[2]);
+            map_insert(uev->CX_, this_node->value, tmpC);
+        }
+
+        element_t t_A;
+        element_init_Zr(t_A, pairing);
+        element_random(t_A);
+        element_t tmp1, tmp2, tmp3;
+        element_init_G1(tmp1, pairing);
+        element_init_G1(tmp2, pairing);
+        element_init_Zr(tmp3, pairing);
+
+        element_pow_zn(tmp1, pk.w, _lambda_A);
+        element_pow_zn(tmp2, pk.v, t_A);
+        element_mul(tmpC[0], tmp1, tmp2);
+
+        element_from_hash(tmp3, this_node->value, strlen(this_node->value));
+        element_pow_zn(tmp1, pk.u, tmp3);
+        element_mul(tmp1, tmp1, pk.h);
+        element_neg(tmp3, t_A);
+        element_pow_zn(tmpC[1], tmp1, tmp3);
+
+        element_pow_zn(tmpC[2], pk.g, t_A);
+        state_update(uev->states, this_node, LABEL_ADD);
+        ptr_list the_affected = get_the_affected(this_node, result.the_remains);
+        printf("Proceccing %s\n", this_node->value);
+        print_list("The affected", the_affected);
+
+        for (int j = 0; j < the_affected.length; j++)
+        {
+            TreeNode *inner_node = (TreeNode *)the_affected.elem_[j];
+            element_t *_lambda_i = (element_t *)map_search(ip->lambda, inner_node->value);
+            printf("%s  %p is NULL\n", inner_node->value, _lambda_i);
+            element_add(*_lambda_i, *_lambda_i, _lambda_A);
+
+            element_t *tmpCp = map_search(uev->CX_, inner_node->value);
+            if (tmpCp != NULL)
+            {
+                element_t t_j;
+                element_init_Zr(t_j, pairing);
+                element_random(t_j);
+                element_t tmp1, tmp2, tmp3;
+                element_init_G1(tmp1, pairing);
+                element_init_G1(tmp2, pairing);
+                element_init_Zr(tmp3, pairing);
+                element_pow_zn(tmp1, pk.w, y_A);
+                element_pow_zn(tmp2, pk.v, t_j);
+                element_mul(tmp1, tmp1, tmp2);
+                element_mul(tmpCp[0], tmpCp[0], tmp1);
+
+                element_from_hash(tmp3, inner_node->value, strlen(inner_node->value));
+                element_pow_zn(tmp1, pk.u, tmp3);
+                element_mul(tmp1, tmp1, pk.h);
+                element_neg(tmp3, t_j);
+                element_pow_zn(tmp1, tmp1, tmp3);
+                element_mul(tmpCp[1], tmpCp[1], tmp1);
+
+                element_pow_zn(tmp1, pk.g, t_j);
+                element_mul(tmpCp[2], tmpCp[2], tmp1);
+
+                element_clear(t_j);
+                element_clear(tmp1);
+                element_clear(tmp2);
+                element_clear(tmp3);
+
+                state_update(uev->states, inner_node, LABEL_MULTIPLY);
+            }
+        }
+        element_clear(_lambda_A);
+        element_clear(y_A);
+    }
+
+    for (int i = 0; i < result.the_remains.length; i++)
+    {
+        TreeNode *this_node = (TreeNode *)result.the_remains.elem_[i];
+        state_update(uev->states, this_node, LABEL_NOP);
+    }
+
+    for (int i = 0; i < result.the_universe.length; i++)
+    {
+        const char *attribute = ((TreeNode *)result.the_universe.elem_[i])->value;
+        print_state(attribute, (State)map_search(uev->states, attribute));
+    }
+    // element_t *tmp;
+    // for (int i = 0; i < result.deleted_attributes_connected_by_or.length; i++)
+    // {
+    //     const char *attribute = ((TreeNode *)result.deleted_attributes_connected_by_or.elem_[i])->value;
+    //     tmp = map_search(ip->lambda, attribute);
+    //     element_clear(*tmp);
+    //     map_remove(ip->lambda, attribute);
+    //     tmp = map_search(ev->CX_, attribute);
+    //     element_clear(*tmp++);
+    //     element_clear(*tmp++);
+    //     element_clear(*tmp);
+    //     map_remove(ev->CX_, attribute);
+    // }
 
     return;
     // int row_removed = -1;
@@ -521,6 +720,17 @@ void add(EV *ev, int index, int trace_back, const char *connector, const char *v
     }
 }
 
+bool state_update(HashMap *_map, TreeNode *_node, Label _label)
+{
+    State this_state = (State)map_search(_map, _node->value);
+    if (this_state == 0)
+    {
+        map_insert(_map, _node->value, (void *)STATE_START);
+    }
+    this_state = (State)map_search(_map, _node->value);
+    map_update(_map, _node->value, (void *)transition(this_state, _label));
+}
+
 HashMap *get_lambda(rdmat a, ptr_list rho, rdmat_mp b)
 {
     HashMap *map = initHashMap();
@@ -545,4 +755,107 @@ HashMap *get_lambda(rdmat a, ptr_list rho, rdmat_mp b)
         map_insert(map, ((TreeNode *)rho.elem_[i])->value, c.elem[i]);
     }
     return map;
+}
+
+Result get_result(ptr_list rho1, ptr_list rho2)
+{
+    Result result = {
+        .deleted_attributes_connected_by_or = make_ptr_list(0),
+        .deleted_attributes_connected_by_and = make_ptr_list(0),
+        .added_attributes_connected_by_or = make_ptr_list(0),
+        .added_attributes_connected_by_and = make_ptr_list(0),
+        .the_remains = make_ptr_list(0),
+        .the_universe = make_ptr_list(0),
+    };
+
+    for (int i = 0; i < rho1.length; i++)
+    {
+        TreeNode *this_node = (TreeNode *)rho1.elem_[i];
+        result.the_universe = add_to_list(result.the_universe, this_node);
+        if (find_in(this_node, rho2) == NULL)
+        {
+            if (strcmp(this_node->parent->value, "||") == 0)
+            {
+                result.deleted_attributes_connected_by_or = add_to_list(result.deleted_attributes_connected_by_or, this_node);
+            }
+            else
+            {
+                result.deleted_attributes_connected_by_and = add_to_list(result.deleted_attributes_connected_by_and, this_node);
+            }
+        }
+    }
+    TreeNode *candidate = NULL;
+    for (int i = 0; i < rho2.length; i++)
+    {
+        TreeNode *this_node = rho2.elem_[i];
+        if ((candidate = find_in(this_node, rho1)) == NULL)
+        {
+            result.the_universe = add_to_list(result.the_universe, this_node);
+            if (strcmp(this_node->parent->value, "||") == 0)
+            {
+                result.added_attributes_connected_by_or = add_to_list(result.added_attributes_connected_by_or, this_node);
+            }
+            else
+            {
+                result.added_attributes_connected_by_and = add_to_list(result.added_attributes_connected_by_and, this_node);
+            }
+        }
+        else
+        {
+            if (!is_same_path(this_node, candidate))
+            {
+                if (strcmp(candidate->parent->value, "||") == 0)
+                {
+                    result.deleted_attributes_connected_by_or = add_to_list(result.deleted_attributes_connected_by_or, candidate);
+                }
+                else
+                {
+                    result.deleted_attributes_connected_by_and = add_to_list(result.deleted_attributes_connected_by_and, candidate);
+                }
+                if (strcmp(this_node->parent->value, "||") == 0)
+                {
+                    result.added_attributes_connected_by_or = add_to_list(result.added_attributes_connected_by_or, this_node);
+                }
+                else
+                {
+                    result.added_attributes_connected_by_and = add_to_list(result.added_attributes_connected_by_and, this_node);
+                }
+            }
+            else
+            {
+                result.the_remains = add_to_list(result.the_remains, candidate);
+            }
+        }
+    }
+    print_list("deleted_attributes_connected_by_or", result.deleted_attributes_connected_by_or);
+    print_list("deleted_attributes_connected_by_and", result.deleted_attributes_connected_by_and);
+    print_list("added_attributes_connected_by_or", result.added_attributes_connected_by_or);
+    print_list("added_attributes_connected_by_and", result.added_attributes_connected_by_and);
+    print_list("the_remains", result.the_remains);
+    print_list("the_universe", result.the_universe);
+    return result;
+}
+void _find_that_kid(TreeNode *node, void **food)
+{
+    if (find_in(node, *(ptr_list *)food[0]))
+    {
+        *(ptr_list *)food[1] = add_to_list(*(ptr_list *)food[1], node);
+    }
+}
+ptr_list get_the_affected(TreeNode *_node, ptr_list _remains)
+{
+    TreeNode *sibling = get_sibling(_node);
+    ptr_list list = make_ptr_list(0);
+    if (strcmp(sibling->value, "&&") == 0 || strcmp(sibling->value, "||") == 0)
+    {
+        void **my_food = (void **)malloc(2 * sizeof(void *));
+        my_food[0] = &_remains;
+        my_food[1] = &list;
+        breadth_first_traversal(sibling, _find_that_kid, my_food);
+    }
+    else
+    {
+        list = add_to_list(list, sibling->value);
+    }
+    return list;
 }

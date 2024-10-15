@@ -3,7 +3,7 @@ int cols = 1;
 int rows = 0;
 TreeNode **tmp_rho;
 
-void set_childrens_vec(TreeNode *node, void *data)
+void set_childrens_vec(TreeNode *node, void **food)
 {
     if (strcmp(node->value, "&&") == 0)
     {
@@ -61,7 +61,7 @@ void set_childrens_vec(TreeNode *node, void *data)
     }
 }
 
-void display(TreeNode *node, void *data)
+void display(TreeNode *node, void **food)
 {
     // printf("the node's addr is %p, value is %s\n", node, node->value);
     if (strcmp(node->value, "||") && strcmp(node->value, "&&"))
@@ -104,16 +104,16 @@ void get_W_rho(rdmat *W, ptr_list *rho, TreeNode *root)
     }
 
     tmp_rho = (TreeNode **)malloc(sizeof(TreeNode *) * rows);
-    breadth_first_traversal(root, rdmat_row_concat, W);
+    breadth_first_traversal(root, rdmat_row_concat, (void**)&W);
     rho->elem_ = (void**)tmp_rho;
     (*rho).length = W->rows;
     (*rho).capacity = W->rows;
     tmp_rho = NULL;
 }
 
-void rdmat_row_concat(TreeNode *node, void *data)
+void rdmat_row_concat(TreeNode *node, void **food)
 {
-    rdmat *W = (rdmat *)data;
+    rdmat *W = (rdmat *)*food;//NOTE
     if (strcmp(node->value, "||") && strcmp(node->value, "&&"))
     {
         memcpy(W->elem[W->rows], node->vec.data, node->vec.length * sizeof(int));

@@ -77,6 +77,36 @@ bool map_remove(HashMap *hashMap, const char *key)
     return false; // 键不存在
 }
 
+bool map_update(HashMap *hashMap, const char *key, void* newValue)
+{
+    // 计算键的哈希值
+    unsigned int index = hashFunction(key);
+
+    // 查找键的位置
+    while (hashMap->table[index].value != 0 && strcmp(hashMap->table[index].key, key) != 0)
+    {
+        index = (index + 1) % TABLE_SIZE; // 线性探测
+    }
+
+    // 如果找到了键，就更新它的值
+    if (strcmp(hashMap->table[index].key, key) == 0)
+    {
+        hashMap->table[index].value = newValue;
+        return true;
+    }
+    else if (hashMap->table[index].value == 0)
+    {
+        // 如果没找到键，但找到了空位置，相当于插入新键值对
+        strcpy(hashMap->table[index].key, key);
+        hashMap->table[index].value = newValue;
+        hashMap->count++; // 插入新键值对时增加计数
+        return true;
+    }
+
+    // 如果遍历完整个哈希表都没有找到键，也没有空位置，则无法更新
+    return false;
+}
+
 // 释放哈希表
 void freeHashMap(HashMap *hashMap)
 {

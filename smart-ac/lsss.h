@@ -4,10 +4,10 @@
 #include "act_visitor.h"
 #include "utils.h"
 
-void set_childrens_vec(TreeNode *node, void *data);
-void display(TreeNode *node, void *data);
+void set_childrens_vec(TreeNode *node, void **food);
+void display(TreeNode *node, void **food);
 TreeNode *get_complete_tree(char *input);
-void rdmat_row_concat(TreeNode *node, void *data);
+void rdmat_row_concat(TreeNode *node, void **food);
 void get_W_rho(rdmat *W, ptr_list *rho, TreeNode *root);
 void rd_free_tree(TreeNode *tree);
 void init_vec(TreeNode *root);

@@ -515,3 +515,91 @@ rdvec cpy_rdvec(rdvec a)
     memcpy(tmp.data, a.data, sizeof(int) * CAPACITY);
     return tmp;
 }
+
+ptr_list add_to_list(ptr_list a, void *b)
+{
+    if (a.length >= a.capacity)
+    {
+        ptr_list tmp = make_ptr_list(a.capacity * 2);
+        memcpy(tmp.elem_, a.elem_, sizeof(void *) * a.length);
+        tmp.length = a.length;
+        tmp.elem_[tmp.length++] = b;
+        free(a.elem_);
+        return tmp;
+    }
+    else
+    {
+        a.elem_[a.length++] = b;
+        return a;
+    }
+}
+
+State transition(State state, Label label)
+{
+    if (label == LABEL_NOP)
+        return state;
+    switch (state + label)
+    {
+    case STATE_START + LABEL_ADD:
+        return STATE_ADD;
+    case (STATE_START + LABEL_DELETE):
+        return STATE_DELETE;
+    case STATE_START + LABEL_MULTIPLY:
+        return STATE_MULTIPLY;
+    case STATE_ADD + LABEL_MULTIPLY:
+        return STATE_MULTIPLY;
+    case STATE_ADD + LABEL_DELETE:
+        return STATE_DELETE;
+    case STATE_MULTIPLY + LABEL_MULTIPLY:
+        return STATE_MULTIPLY;
+    case STATE_MULTIPLY + LABEL_DELETE:
+        return STATE_DELETE;
+    case STATE_DELETE + LABEL_ADD:
+        return STATE_ADD_;
+    case STATE_ADD_ + LABEL_DELETE:
+        return STATE_DELETE;
+    case STATE_ADD_ + LABEL_MULTIPLY:
+        return STATE_MULTIPLY_;
+    case STATE_MULTIPLY_ + LABEL_MULTIPLY:
+        return STATE_MULTIPLY_;
+    case STATE_MULTIPLY_ + LABEL_DELETE:
+        return STATE_DELETE;
+    default:
+        return STATE_UNKNOWN;
+    }
+}
+
+void print_state(const char *name, State state)
+{
+    printf("The state of %s is ", name);
+    switch (state)
+    {
+    case STATE_START:
+        puts("Start.");
+        break;
+    case STATE_DELETE:
+        puts("Delete.");
+        break;
+    case STATE_ADD:
+        puts("Add.");
+        break;
+    case STATE_MULTIPLY:
+        puts("Multiply.");
+        break;
+    case STATE_ADD_:
+        puts("Add_prime.");
+        break;
+    case STATE_MULTIPLY_:
+        puts("Multiply_prime.");
+        break;
+    case STATE_REPLACE:
+        puts("Replace.");
+        break;
+    case STATE_UNKNOWN:
+        puts("Unknown.");
+        break;
+    default:
+        puts("KEY ESCAPES!");
+        break;
+    }
+}

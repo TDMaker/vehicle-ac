@@ -44,11 +44,12 @@ int main()
      */
     // char *PP_new = "(E)&&((((A)&&(B))||((C)&&(D)))||((B)&&((C)||(D))))";
     char *PP_new = \
-    "((C)&&(D))||(((E)||(Z))&&((G)||(H)))";
+    "(W)&&(((C)&&(D))||(((E)||(Z))&&((G)&&(Y))))";
+    // "((C)&&(D))||(((E)||(Z))&&((G)&&(Y)))";
     // "(((12)&&(23))||((46)&&(88)))||(((55)||(11))&&((20)||(89)))";
     UEV uev;
     IP ip_new;
-    // policy_mod(&uev, &ip_new, pk, &ip, &ev, PP_new);
+    policy_mod(&uev, &ip_new, pk, &ip, &ev, PP_new);
 
     /**
      * EvidMod(EV_cur,UEV)→{EV_new}

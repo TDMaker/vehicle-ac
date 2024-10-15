@@ -32,6 +32,7 @@
         "queue": "c",
         "string": "c",
         "unordered_map": "c",
-        "__locale": "c"
+        "__locale": "c",
+        "locale": "c"
     }
 }

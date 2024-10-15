@@ -40,36 +40,30 @@ typedef struct
 
 typedef struct
 {
-    int* my_rho;
+    int *my_rho;
     element_t K0;
     element_t K1;
     HashMap *KX_;
 } SK;
 
-typedef enum
+typedef struct
 {
-    LABEL_ADD = 10,
-    LABEL_DELETE = 20,
-    LABEL_MULTIPLY = 30,
-} Label;
-
-typedef enum
-{
-    STATE_START = 1,
-    STATE_DELETE = 2,
-    STATE_ADD = 3,
-    STATE_MULTIPLY = 4,
-    STATE_ADD_ = 5,
-    STATE_MULTIPLY_ = 6,
-    STATE_REPLACE = 7,
-    STATE_UNKNOWN = 8,
-} State;
+    HashMap *CX_;
+    HashMap *states;
+} UEV;
 
 typedef struct
 {
-    char *attr;
-    State state;
-} UEV;
+    ptr_list deleted_attributes_connected_by_or;
+    ptr_list deleted_attributes_connected_by_and;
+    ptr_list added_attributes_connected_by_or;
+    ptr_list added_attributes_connected_by_and;
+    ptr_list the_remains;
+    ptr_list the_universe;
+    // ptr_list replaced_attributes_connected_by_or;
+    // ptr_list replaced_attributes_connected_by_and;
+} Result;
+Result get_result(ptr_list rho1, ptr_list rho2);
 
 void sys_init(PK *, MK *);
 void policy_init(EV *, IP *, PK, char *M, char *PP);
@@ -78,6 +72,9 @@ int verify(char *_m, EV ev, SK sk, char **s, int my_attr_size);
 void rd_cleanup(PK *, MK *, SK *, EV *, IP *);
 void policy_mod(UEV *, IP *, PK, IP *, EV *, char *pp);
 void evidence_mod(EV *, EV, UEV);
+bool state_update(HashMap *_map, TreeNode *_node, Label _label);
+
+ptr_list get_the_affected(TreeNode *_node, ptr_list _remains);
 
 void del_or(TreeNode *node, void *data);
 void del_and(TreeNode *node, void *data);
