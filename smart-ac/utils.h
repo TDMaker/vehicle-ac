@@ -74,6 +74,7 @@ rdmat_f gaussian_elimination(rdmat a);
 rdmat transpose(rdmat a);
 void rdmat_print(const char *name, rdmat a);
 void rdmat_f_print(const char *name, rdmat_f a);
+void rdmat_mp_print(const char *name, rdmat_mp a);
 void free_rdvec(rdvec a);
 void free_rdmat(rdmat a);
 void free_rdmat_f(rdmat_f a);

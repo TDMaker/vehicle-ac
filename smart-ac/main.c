@@ -18,7 +18,7 @@ int main()
     char *M = "1234567890";
     EV ev;
     IP ip;
-    policy_init(&ev, &ip, pk, M, PP);
+    policy_init(&ev, &ip, pk, M, PP, false);
 
     /**
      * KeyDist(PK,MK,S)→{SK}
@@ -48,14 +48,13 @@ int main()
     // "((C)&&(D))||(((E)||(Z))&&((G)&&(Y)))";
     // "(((12)&&(23))||((46)&&(88)))||(((55)||(11))&&((20)||(89)))";
     UEV uev;
-    IP ip_new;
-    policy_mod(&uev, &ip_new, pk, &ip, &ev, PP_new);
+    EV ev_new;
+    // policy_mod(&uev, pk, &ip, &ev, &ev_new, PP_new);
 
     /**
      * EvidMod(EV_cur,UEV)→{EV_new}
      */
-    EV ev_new;
-    // evidence_mod(&ev_new, ev, uev);
+    // evidence_mod(&ev_new, &ev, &uev);
 
     // Clear
     // rd_cleanup(&pk, &mk, &sk, &ev, &ip);

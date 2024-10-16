@@ -444,7 +444,6 @@ void rdmat_f_print(const char *name, rdmat_f a)
         putchar('\t');
     puts("    ┘");
     puts("=================================================\n");
-    return;
 }
 
 void rdmat_print(const char *name, rdmat a)
@@ -471,7 +470,18 @@ void rdmat_print(const char *name, rdmat a)
         putchar('\t');
     puts("   ┘");
     puts("=================================================\n");
-    return;
+}
+
+void rdmat_mp_print(const char *name, rdmat_mp a)
+{
+    printf("The matrix **%s** has %d rows and %d cols.\n", name, a.rows, a.cols);
+    for (int i = 0; i < a.rows; i++)
+    {
+        for (int j = 0; j < a.cols; j++)
+        {
+            element_printf("(%d, %d) is %B\n", i, j, a.elem[i * a.cols + j]);
+        }
+    }
 }
 
 rdmat transpose(rdmat a)
@@ -599,7 +609,7 @@ void print_state(const char *name, State state)
         puts("Unknown.");
         break;
     default:
-        puts("KEY ESCAPES!");
+        printf("The received key is %d, KEY ESCAPES!\n", state);
         break;
     }
 }

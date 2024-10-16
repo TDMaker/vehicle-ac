@@ -17,12 +17,6 @@ typedef struct
 
 typedef element_t MK;
 
-// typedef struct
-// {
-//     TreeNode **node_;
-//     int length;
-// } RHO;
-
 typedef struct
 {
     element_t C;
@@ -66,15 +60,15 @@ typedef struct
 Result get_result(ptr_list rho1, ptr_list rho2);
 
 void sys_init(PK *, MK *);
-void policy_init(EV *, IP *, PK, char *M, char *PP);
+void policy_init(EV *, IP *, PK, char *M, char *PP, bool is_update);
 void key_dist(SK *, PK, MK, ptr_list, char **S, int size);
 int verify(char *_m, EV ev, SK sk, char **s, int my_attr_size);
 void rd_cleanup(PK *, MK *, SK *, EV *, IP *);
-void policy_mod(UEV *, IP *, PK, IP *, EV *, char *pp);
-void evidence_mod(EV *, EV, UEV);
+void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, EV *ev_new, char *pp_new);
+void evidence_mod(EV *ev_new, EV *ev_cur, UEV *);
 bool state_update(HashMap *_map, TreeNode *_node, Label _label);
 
-ptr_list get_the_affected(TreeNode *_node, ptr_list _remains);
+ptr_list get_the_affected(TreeNode *_node);
 
 void del_or(TreeNode *node, void *data);
 void del_and(TreeNode *node, void *data);
