@@ -40,7 +40,6 @@ typedef struct
     int capacity;
 } ptr_list;
 
-
 typedef enum
 {
     LABEL_ADD = 10,
@@ -83,4 +82,7 @@ ptr_list make_ptr_list(int capacity);
 State transition(State state, Label label);
 void print_state(const char *name, State state);
 ptr_list add_to_list(ptr_list a, void *b);
+bool is_connector(const char *value);
+bool is_or(const char *value);
+bool is_and(const char *value);
 #endif /* __UTILS_H__ */

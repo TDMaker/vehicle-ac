@@ -232,7 +232,7 @@ rdmat_f gaussian_elimination(rdmat augmentedMatrix)
         }
         if (fabs(sum - augmentedMatrix.elem[row][cols - 1]) > 1e-10)
         {
-            puts("There are contradictory equations");
+            puts("There are contradictory equations, exiting....");
             exit(-1); // 存在矛盾方程
         }
     }
@@ -612,4 +612,19 @@ void print_state(const char *name, State state)
         printf("The received key is %d, KEY ESCAPES!\n", state);
         break;
     }
+}
+
+bool is_connector(const char *value)
+{
+    return strcmp(value, "||") == 0 || strcmp(value, "&&") == 0;
+}
+
+bool is_or(const char *value)
+{
+    return strcmp(value, "||") == 0;
+}
+
+bool is_and(const char *value)
+{
+    return strcmp(value, "&&") == 0;
 }

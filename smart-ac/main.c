@@ -1,4 +1,5 @@
 #include "rusc.h"
+#define COUNT(a) ((sizeof(a)) / (sizeof(a[0])))
 int main()
 {
     /**
@@ -12,49 +13,56 @@ int main()
      * PolicyInit(PK,M,PP)→{EV,IP}
      */
     // char *PP = "(E)&&((((A)&&(B))||((C)&&(D)))||(((A)||(B))&&((C)||(D))))";
-    char *PP = "(Z)&&((((A)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H))))";
+    char *PP =
+        "((A)||(B))&&(C)";
+    // "(Z)&&((((A)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H))))";
     // char* PP = "E and ((A and B) or (A and C) or (B and C) or (B and D) or (C and D))";
     // char* PP = "((A)&&(B))||((C)||(D))";
-    char *M = "1234567890";
+    M m;
     EV ev;
     IP ip;
-    policy_init(&ev, &ip, pk, M, PP, false);
+    policy_init(&ev, &ip, pk, &m, PP, false);
 
     /**
      * KeyDist(PK,MK,S)→{SK}
      */
-    char *S[] = {"A", "B", "Z"}; // Decryption fails if any element got repeated.
+    char *S[] = {"A", "C"}; // Don't got any element repeated.
     SK sk;
-    key_dist(&sk, pk, mk, ev.rho, S, sizeof(S) / sizeof(S[0]));
-
+    char *S2[] = {"C", "D", "A"};
+    SK sk2;
+    key_dist(&sk, pk, mk, S, COUNT(S));
+    key_dist(&sk2, pk, mk, S2, COUNT(S2));
     /**
      * Verify(M,EV,SK)→{0,1}
      */
-    if (verify(M, ev, sk, S, sizeof(S) / sizeof(S[0])))
-    {
-        puts("Decryption succeed.\n");
-    }
-    else
-    {
-        puts("Decryption faild!\n");
-    }
+    verify(m, ev, sk, S, COUNT(S)) == 1 ? puts("Decryption succeed.") : puts("Decryption faild!");
+    verify(m, ev, sk2, S2, COUNT(S2)) == 1 ? puts("Decryption succeed.") : puts("Decryption faild!");
+
+    puts("\n\nmodify@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n");
 
     /**
      * PolicyMod(PK,IP_cur,PP_new)→{UEV,IP_new}
      */
     // char *PP_new = "(E)&&((((A)&&(B))||((C)&&(D)))||((B)&&((C)||(D))))";
-    char *PP_new = \
-    "(W)&&(((C)&&(D))||(((E)||(Z))&&((G)&&(Y))))";
+    char *PP_new =
+        "((D)||(B))&&(C)";
+    //     "(W)&&((((A)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H))))";
+    //     "(W)&&(((C)||(D))||(((E)||(Z))&&((G)||(Y))))";
     // "((C)&&(D))||(((E)||(Z))&&((G)&&(Y)))";
     // "(((12)&&(23))||((46)&&(88)))||(((55)||(11))&&((20)||(89)))";
     UEV uev;
     EV ev_new;
-    // policy_mod(&uev, pk, &ip, &ev, &ev_new, PP_new);
-
+    policy_mod(&uev, pk, &ip, &ev, &ev_new, PP_new);
     /**
      * EvidMod(EV_cur,UEV)→{EV_new}
      */
-    // evidence_mod(&ev_new, &ev, &uev);
+    
+    evidence_mod(&ev_new, &ev, &uev);
+    
+    // result = verify(M, ev_new, sk, S, COUNT(S));
+    // result == 1 ? puts("Decryption succeed.") : puts("Decryption faild!");
+
+    verify(m, ev_new, sk2, S2, COUNT(S2)) == 1 ? puts("S2 Decryption succeed.") : puts("S2 Decryption faild!");
 
     // Clear
     // rd_cleanup(&pk, &mk, &sk, &ev, &ip);

@@ -16,6 +16,7 @@ typedef struct
 } PK;
 
 typedef element_t MK;
+typedef element_t M;
 
 typedef struct
 {
@@ -34,7 +35,6 @@ typedef struct
 
 typedef struct
 {
-    int *my_rho;
     element_t K0;
     element_t K1;
     HashMap *KX_;
@@ -54,19 +54,18 @@ typedef struct
     ptr_list added_attributes_connected_by_and;
     ptr_list the_remains;
     ptr_list the_universe;
-    // ptr_list replaced_attributes_connected_by_or;
-    // ptr_list replaced_attributes_connected_by_and;
 } Result;
+
 Result get_result(ptr_list rho1, ptr_list rho2);
 
 void sys_init(PK *, MK *);
-void policy_init(EV *, IP *, PK, char *M, char *PP, bool is_update);
-void key_dist(SK *, PK, MK, ptr_list, char **S, int size);
-int verify(char *_m, EV ev, SK sk, char **s, int my_attr_size);
+void policy_init(EV *, IP *, PK, M *, char *PP, bool is_update);
+void key_dist(SK *, PK, MK, char **S, int size);
+int verify(M m, EV ev, SK sk, char **s, int my_attr_size);
 void rd_cleanup(PK *, MK *, SK *, EV *, IP *);
 void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, EV *ev_new, char *pp_new);
 void evidence_mod(EV *ev_new, EV *ev_cur, UEV *);
-bool state_update(HashMap *_map, TreeNode *_node, Label _label);
+bool state_update(HashMap *_map, TreeNode *_node, Label _label); // TODO 换到别的地方
 
 ptr_list get_the_affected(TreeNode *_node);
 
