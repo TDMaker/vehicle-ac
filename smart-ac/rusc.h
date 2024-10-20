@@ -42,7 +42,11 @@ typedef struct
 
 typedef struct
 {
+    element_t C;
+    element_t C0;
     HashMap *CX_;
+    rdmat W;
+    ptr_list rho;
     HashMap *states;
 } UEV;
 
@@ -63,15 +67,13 @@ void policy_init(EV *, IP *, PK, M *, char *PP, bool is_update);
 void key_dist(SK *, PK, MK, char **S, int size);
 int verify(M m, EV ev, SK sk, char **s, int my_attr_size);
 void rd_cleanup(PK *, MK *, SK *, EV *, IP *);
-void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, EV *ev_new, char *pp_new);
-void evidence_mod(EV *ev_new, EV *ev_cur, UEV *);
-bool state_update(HashMap *_map, TreeNode *_node, Label _label); // TODO 换到别的地方
+void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new);
+void evidence_mod(EV *, UEV *);
+bool state_update(HashMap *_map, const char *attribute, Label _label); // TODO 换到别的地方
 
-ptr_list get_the_affected(TreeNode *_node);
-
-void del_or(TreeNode *node, void *data);
-void del_and(TreeNode *node, void *data);
-void add_or(TreeNode *sibling, void *data);
+// void del_or(TreeNode *node, void *data);
+// void del_and(TreeNode *node, void *data);
+// void add_or(TreeNode *sibling, void *data);
 
 HashMap *get_lambda(rdmat a, ptr_list rho, rdmat_mp b);
 #endif /* __RUSC_H__ */

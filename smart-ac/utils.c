@@ -548,6 +548,8 @@ State transition(State state, Label label)
 {
     if (label == LABEL_NOP)
         return state;
+    if (state == STATE_DELETE && label != LABEL_ADD)
+        return STATE_DELETE;
     switch (state + label)
     {
     case STATE_START + LABEL_ADD:
