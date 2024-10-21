@@ -70,10 +70,11 @@ void rd_cleanup(PK *, MK *, SK *, EV *, IP *);
 void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new);
 void evidence_mod(EV *, UEV *);
 bool state_update(HashMap *_map, const char *attribute, Label _label); // TODO 换到别的地方
+element_t* get_this_lambda(HashMap* lambda, TreeNode* node);
 
 // void del_or(TreeNode *node, void *data);
 // void del_and(TreeNode *node, void *data);
 // void add_or(TreeNode *sibling, void *data);
-
 HashMap *get_lambda(rdmat a, ptr_list rho, rdmat_mp b);
+
 #endif /* __RUSC_H__ */

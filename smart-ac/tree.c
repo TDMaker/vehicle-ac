@@ -29,7 +29,7 @@ TreeNode *get_sibling(TreeNode *node)
     TreeNode *parent = node->parent;
     if (parent == NULL)
     {
-        puts("The parent of this node is NULL!");
+        fprintf(stderr, "The parent of %s is NULL!\n", node->value);
         return NULL;
     }
     else
@@ -50,11 +50,20 @@ TreeNode *get_sibling(TreeNode *node)
     }
 }
 
-TreeNode *find_in(TreeNode *a, ptr_list b)
+TreeNode *find_node_in(TreeNode *a, ptr_list b)
 {
     for (int i = 0; i < b.length; i++)
     {
         if (strcmp(((TreeNode *)b.elem_[i])->value, a->value) == 0)
+            return (TreeNode *)b.elem_[i];
+    }
+    return NULL;
+}
+TreeNode *find_attribute_in(const char *a, ptr_list b)
+{
+    for (int i = 0; i < b.length; i++)
+    {
+        if (strcmp(((TreeNode *)b.elem_[i])->value, a) == 0)
             return (TreeNode *)b.elem_[i];
     }
     return NULL;
@@ -204,6 +213,36 @@ ptr_list get_all_under_nodes(TreeNode *_node)
     return list;
 }
 
+TreeNode *add_to_tree(ptr_list rho, TreeNode *orign_node, TreeNode *sibling_in_new_rho)
+{
+    TreeNode *self_spawn = (TreeNode *)malloc(sizeof(TreeNode));
+    TreeNode *sibling_append = (TreeNode *)malloc(sizeof(TreeNode));
+    self_spawn->right = self_spawn->left = NULL;
+    sibling_append->right = sibling_append->left = NULL;
+    strcpy(self_spawn->value, orign_node->value);
+    strcpy(sibling_append->value, sibling_in_new_rho->value);
+    strcpy(orign_node->value, sibling_in_new_rho->parent->value);
+    orign_node->left = self_spawn;
+    orign_node->right = sibling_append;
+    self_spawn->parent = orign_node;
+    sibling_append->parent = orign_node;
+    print_node(orign_node);
+    print_node(self_spawn);
+    print_node(sibling_append);
+    if (!is_connector(self_spawn->value))
+    {
+        for (int i = 0; i < rho.length; i++)
+        {
+            if (rho.elem_[i] == orign_node)
+            {
+                rho.elem_[i] = self_spawn;
+                break;
+            }
+        }
+    }
+    return sibling_append;
+}
+
 /*
 void add(EV *ev, int index, int trace_back, const char *connector, const char *value)
 {
@@ -263,3 +302,49 @@ void add(EV *ev, int index, int trace_back, const char *connector, const char *v
         return;
     }
 }*/
+
+TreeNode *get_node_in_another_tree(TreeNode *leaf_node1, ptr_list new_rho)
+{
+    TreeNode *leaf_node2 = find_attribute_in(leaf_node1->value, new_rho);
+    while ((leaf_node1 = leaf_node1->parent->parent) != NULL)
+    {
+        leaf_node1 = leaf_node1->parent;
+        leaf_node2 = leaf_node2->parent;
+    }
+    return leaf_node2->parent;
+}
+
+void branch_it(ptr_list rho, TreeNode *target_node, TreeNode *template_node, element_t *lambda)
+{
+
+    if (!is_connector(template_node->value))
+    {
+        // it's a attr
+        return;
+    }
+    TreeNode *left_node = (TreeNode *)malloc(sizeof(TreeNode));
+    TreeNode *right_node = (TreeNode *)malloc(sizeof(TreeNode));
+    left_node->left = left_node->right = right_node->left = right_node->right = NULL;
+    left_node->parent = target_node;
+    right_node->parent = target_node;
+    strcpy(left_node->value, template_node->left->value);
+    strcpy(right_node->value, template_node->right->value);
+
+    if (is_or(template_node->value))
+    {
+        branch_it(rho, left_node, template_node->left, lambda);
+        branch_it(rho, right_node, template_node->right, lambda);
+    }
+    else if (is_and(template_node->value))
+    {
+        // branch_it(node->left);
+        // branch_it(node->right);
+    }
+}
+
+TreeNode *get_top(TreeNode *a)
+{
+    while (a->parent != NULL)
+        a = a->parent;
+    return a;
+}

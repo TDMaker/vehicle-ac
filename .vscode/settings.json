@@ -33,6 +33,8 @@
         "string": "c",
         "unordered_map": "c",
         "__locale": "c",
-        "locale": "c"
+        "locale": "c",
+        "ios": "c",
+        "random": "c"
     }
 }

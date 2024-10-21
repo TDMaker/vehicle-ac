@@ -543,6 +543,23 @@ ptr_list add_to_list(ptr_list a, void *b)
         return a;
     }
 }
+// 逻辑有待优化
+ptr_list shrink_list(ptr_list a)
+{
+    int slower = 0;
+    for (int i = 0; i < a.length; i++)
+    {
+        if (a.elem_[i] != NULL)
+        {
+            a.elem_[slower] = a.elem_[i];
+            if (i != slower)
+                a.elem_[i] = NULL;
+            slower++;
+        }
+    }
+    a.length = slower;
+    return a;
+}
 
 State transition(State state, Label label)
 {
