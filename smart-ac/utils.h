@@ -4,7 +4,7 @@
 #include <string.h>
 #include <time.h>
 #include <pbc/pbc.h>
-#include "hashmap.h"
+#include "rd_hashmap.h"
 
 #define CAPACITY 1024
 typedef struct

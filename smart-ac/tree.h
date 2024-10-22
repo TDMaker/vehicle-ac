@@ -18,4 +18,9 @@ TreeNode *add_to_tree(ptr_list rho, TreeNode *orign_node, TreeNode *sibling_in_n
 TreeNode *get_node_in_another_tree(TreeNode *leaf_node1, ptr_list new_rho);
 void branch_it(TreeNode *target_node, TreeNode *template_node, element_t *lambda);
 TreeNode *get_top(TreeNode *a);
+int get_path(TreeNode *node);
+TreeNode *find_node_from_tree(const char *attribute, TreeNode *node);
+TreeNode* add_to_tree2(TreeNode *root, int path, int connector, const char *attribute);
+int del_from_tree2(TreeNode *node2del);
+void print_tree(TreeNode *node);
 #endif /* __TREE_H__ */

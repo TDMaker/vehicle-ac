@@ -35,6 +35,7 @@
         "__locale": "c",
         "locale": "c",
         "ios": "c",
-        "random": "c"
+        "random": "c",
+        "rd_stack.h": "c"
     }
 }

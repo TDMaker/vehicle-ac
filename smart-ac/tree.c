@@ -84,6 +84,33 @@ bool is_same_path(TreeNode *a, TreeNode *b)
     }
 }
 
+TreeNode *find_node_from_tree(const char *attribute, TreeNode *node)
+{
+    if (is_connector(node->value))
+    {
+        TreeNode *left = find_node_from_tree(attribute, node->left);
+        if (left == NULL)
+        {
+            return find_node_from_tree(attribute, node->right);
+        }
+        else
+        {
+            return left;
+        }
+    }
+    else
+    {
+        if (strcmp(attribute, node->value) == 0)
+        {
+            return node;
+        }
+        else
+        {
+            return NULL;
+        }
+    }
+}
+
 void print_list(const char *name, ptr_list a)
 {
     printf("Elemenets in %s is:\n", name);
@@ -105,7 +132,7 @@ int is_same_tree(TreeNode *a, TreeNode *b)
 }
 TreeNode *del_from_tree(ptr_list *rho, const char *attribute)
 {
-    printf("processing %s\n", attribute);
+    printf("deleting %s\n", attribute);
     TreeNode *this_node = NULL;
     int index = -1;
     for (int i = 0; i < rho->length; i++)
@@ -124,26 +151,25 @@ TreeNode *del_from_tree(ptr_list *rho, const char *attribute)
     }
     TreeNode *sibling = get_sibling(this_node);
     TreeNode *parent = this_node->parent;
-    if (is_or(parent->value))
-    {
-        // element_clear(ev->C1_[index]);
-        // element_clear(ev->C2_[index]);
-        // element_clear(ev->C3_[index]);
-    }
-    else if (is_and(parent->value))
-    {
-        for (int i = 0; i < sibling->vec.length; i++)
-        {
-            sibling->vec.data[i] += this_node->vec.data[i];
-        }
-        // sibling->vec.length--;
-    }
-    else
-    {
-        fprintf(stderr, "ERROR! The parent of the handling this_node is not a connector! %s\n", parent->value);
-        exit(-1);
-    }
-
+    // if (is_or(parent->value))
+    // {
+    //     // element_clear(ev->C1_[index]);
+    //     // element_clear(ev->C2_[index]);
+    //     // element_clear(ev->C3_[index]);
+    // }
+    // else if (is_and(parent->value))
+    // {
+    //     for (int i = 0; i < sibling->vec.length; i++)
+    //     {
+    //         sibling->vec.data[i] += this_node->vec.data[i];
+    //     }
+    //     // sibling->vec.length--;
+    // }
+    // else
+    // {
+    //     fprintf(stderr, "ERROR! The parent of the handling this_node is not a connector! %s\n", parent->value);
+    //     exit(-1);
+    // }
     strcpy(parent->value, sibling->value);
     free_rdvec(parent->vec);
     parent->vec = sibling->vec;
@@ -158,6 +184,7 @@ TreeNode *del_from_tree(ptr_list *rho, const char *attribute)
     else
     {
         rho->elem_[index] = parent;
+        printf("%s is replacing\n", parent->value);
     }
     // update the address recorded in the old rho.
     for (int i = 0; i < rho->length; i++)
@@ -171,7 +198,38 @@ TreeNode *del_from_tree(ptr_list *rho, const char *attribute)
     free(sibling);
     free_rdvec(this_node->vec);
     free(this_node);
+
     return parent;
+}
+
+int del_from_tree2(TreeNode *node2del)
+{
+    TreeNode *sibling = get_sibling(node2del);
+    TreeNode *parent = node2del->parent;
+    int connector = -1;
+    if (is_or(parent->value))
+    {
+        connector = 0;
+    }
+    else if (is_and(parent->value))
+    {
+        connector = 1;
+    }
+    strcpy(parent->value, sibling->value);
+    parent->left = sibling->left;
+    parent->right = sibling->right;
+    if (parent->left)
+    {
+        parent->left->parent = parent;
+    }
+    if (parent->right)
+    {
+        parent->right->parent = parent;
+    }
+    free(sibling);
+    free(node2del);
+
+    return connector;
 }
 
 void fill_the_tree(ptr_list *new_rho, const char *attribute, TreeNode *this_node)
@@ -241,6 +299,43 @@ TreeNode *add_to_tree(ptr_list rho, TreeNode *orign_node, TreeNode *sibling_in_n
         }
     }
     return sibling_append;
+}
+
+TreeNode* add_to_tree2(TreeNode *root, int path, int connector, const char *attribute)
+{
+    int direction = 0;
+    TreeNode *end_node = root;
+    printf("Adding %s\n", attribute);
+    while (path > 3)
+    {
+        direction = path & 1;
+        end_node = direction == 0 ? end_node->left : end_node->right;
+        path >>= 1;
+    }
+    direction = path & 1;
+    TreeNode *kid1 = (TreeNode *)malloc(sizeof(TreeNode));
+    TreeNode *kid2 = (TreeNode *)malloc(sizeof(TreeNode));
+    kid1->left = end_node->left;
+    kid1->right = end_node->right;
+    kid2->left = NULL;
+    kid2->right = NULL;
+    if (direction == 0)
+    {
+        end_node->right = kid1;
+        end_node->left = kid2;
+    }
+    else
+    {
+        end_node->left = kid1;
+        end_node->right = kid2;
+    }
+    strcpy(kid1->value, end_node->value);
+    strcpy(kid2->value, attribute);
+    strcpy(end_node->value, connector == 0 ? "||" : "&&");
+    kid1->parent = end_node;
+    kid2->parent = end_node;
+    return kid2;
+
 }
 
 /*
@@ -313,38 +408,72 @@ TreeNode *get_node_in_another_tree(TreeNode *leaf_node1, ptr_list new_rho)
     }
     return leaf_node2->parent;
 }
-
-void branch_it(ptr_list rho, TreeNode *target_node, TreeNode *template_node, element_t *lambda)
+void print_tree(TreeNode *node)
 {
-
-    if (!is_connector(template_node->value))
+    printf("I am %s, my left is %p, right is %p\n", node->value, node->left, node->right);
+    if (node != NULL)
     {
-        // it's a attr
-        return;
-    }
-    TreeNode *left_node = (TreeNode *)malloc(sizeof(TreeNode));
-    TreeNode *right_node = (TreeNode *)malloc(sizeof(TreeNode));
-    left_node->left = left_node->right = right_node->left = right_node->right = NULL;
-    left_node->parent = target_node;
-    right_node->parent = target_node;
-    strcpy(left_node->value, template_node->left->value);
-    strcpy(right_node->value, template_node->right->value);
-
-    if (is_or(template_node->value))
-    {
-        branch_it(rho, left_node, template_node->left, lambda);
-        branch_it(rho, right_node, template_node->right, lambda);
-    }
-    else if (is_and(template_node->value))
-    {
-        // branch_it(node->left);
-        // branch_it(node->right);
+        if (is_connector(node->value))
+        {
+            printf("left->");
+            print_tree(node->left);
+            printf("right->");
+            print_tree(node->right);
+        }
+        else
+        {
+            puts(node->value);
+        }
     }
 }
+// void branch_it(ptr_list rho, TreeNode *target_node, TreeNode *template_node, element_t *lambda)
+// {
+
+//     if (!is_connector(template_node->value))
+//     {
+//         // it's a attr
+//         return;
+//     }
+//     TreeNode *left_node = (TreeNode *)malloc(sizeof(TreeNode));
+//     TreeNode *right_node = (TreeNode *)malloc(sizeof(TreeNode));
+//     left_node->left = left_node->right = right_node->left = right_node->right = NULL;
+//     left_node->parent = target_node;
+//     right_node->parent = target_node;
+//     strcpy(left_node->value, template_node->left->value);
+//     strcpy(right_node->value, template_node->right->value);
+
+//     if (is_or(template_node->value))
+//     {
+//         branch_it(rho, left_node, template_node->left, lambda);
+//         branch_it(rho, right_node, template_node->right, lambda);
+//     }
+//     else if (is_and(template_node->value))
+//     {
+//         // branch_it(node->left);
+//         // branch_it(node->right);
+//     }
+// }
 
 TreeNode *get_top(TreeNode *a)
 {
     while (a->parent != NULL)
         a = a->parent;
     return a;
+}
+
+int get_path(TreeNode *node)
+{
+    if (node == NULL)
+        return -1;
+    int _path = 1;
+    while (node->parent != NULL)
+    {
+        _path <<= 1;
+        if (node->parent->right == node)
+        {
+            _path |= 1;
+        }
+        node = node->parent;
+    }
+    return _path;
 }

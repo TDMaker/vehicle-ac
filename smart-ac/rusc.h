@@ -3,8 +3,8 @@
 #include "lsss.h"
 #include "utils.h"
 #include "tree.h"
-#include "hashmap.h"
-
+#include "rd_hashmap.h"
+#include "rd_stack.h"
 typedef struct
 {
     element_t g;
@@ -52,16 +52,12 @@ typedef struct
 
 typedef struct
 {
-    ptr_list deleted_attributes_connected_by_or;
-    ptr_list deleted_attributes_connected_by_and;
-    ptr_list added_attributes_connected_by_or;
-    ptr_list added_attributes_connected_by_and;
     ptr_list the_remains;
-    ptr_list the_universe;
-} Result;
+    ptr_list the_deleted;
+} RDResult;
 
-Result get_result(ptr_list rho1, ptr_list rho2);
-
+// Result get_result(ptr_list rho1, ptr_list rho2);
+RDResult get_the_deleted(ptr_list rho1, ptr_list rho2);
 void sys_init(PK *, MK *);
 void policy_init(EV *, IP *, PK, M *, char *PP, bool is_update);
 void key_dist(SK *, PK, MK, char **S, int size);
@@ -76,5 +72,5 @@ element_t* get_this_lambda(HashMap* lambda, TreeNode* node);
 // void del_and(TreeNode *node, void *data);
 // void add_or(TreeNode *sibling, void *data);
 HashMap *get_lambda(rdmat a, ptr_list rho, rdmat_mp b);
-
+const char *get_map_key(const char *_key);
 #endif /* __RUSC_H__ */
