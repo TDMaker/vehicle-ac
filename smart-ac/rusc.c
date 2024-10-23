@@ -592,7 +592,7 @@ bool state_update(HashMap *_map, const char *attribute, Label _label)
         map_insert(_map, attribute, (void *)STATE_START);
     }
     this_state = (State)map_search(_map, attribute);
-    map_update(_map, attribute, (void *)transition(this_state, _label));
+    return map_update(_map, attribute, (void *)transition(this_state, _label));
 }
 
 HashMap *get_lambda(rdmat a, ptr_list rho, rdmat_mp b)

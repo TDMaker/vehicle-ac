@@ -24,15 +24,6 @@ ptr_list get_diff(ptr_list rho1, ptr_list rho2)
     return result;
 }
 
-TreeNode *find_in(TreeNode *a, ptr_list b)
-{
-    for (int i = 0; i < b.length; i++)
-    {
-        if (strcmp(((TreeNode *)b.elem_[i])->value, a->value) == 0)
-            return (TreeNode *)b.elem_[i];
-    }
-    return NULL;
-}
 bool is_same_path(TreeNode *a, TreeNode *b)
 {
     if (a == NULL && b == NULL)

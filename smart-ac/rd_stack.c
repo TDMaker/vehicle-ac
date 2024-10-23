@@ -1,8 +1,7 @@
 #include "rd_stack.h"
 
-#define MAX_SIZE 100 // 定义栈的最大容量
+#define MAX_SIZE 100
 
-// 初始化栈
 Stack *rd_stk_create_stack(int capacity)
 {
     Stack *stack = (Stack *)malloc(sizeof(Stack));
@@ -12,13 +11,11 @@ Stack *rd_stk_create_stack(int capacity)
     return stack;
 }
 
-// 判断栈是否为空
 int rd_stk_is_empty(Stack *stack)
 {
     return stack->top == -1;
 }
 
-// 压栈操作
 void rd_stk_push(Stack *stack, StkItem item)
 {
     if (stack->top >= (stack->capacity - 1))
@@ -33,7 +30,6 @@ void rd_stk_push(Stack *stack, StkItem item)
     }
 }
 
-// 弹栈操作
 StkItem rd_stk_pop(Stack *stack)
 {
     if (rd_stk_is_empty(stack))
@@ -48,7 +44,6 @@ StkItem rd_stk_pop(Stack *stack)
     }
 }
 
-// 查看栈顶元素
 StkItem rd_stk_peek(Stack *stack)
 {
     if (rd_stk_is_empty(stack))
@@ -62,7 +57,6 @@ StkItem rd_stk_peek(Stack *stack)
     }
 }
 
-// 释放栈资源
 void rd_stk_destroy_stack(Stack *stack)
 {
     free(stack->array);

@@ -26,15 +26,6 @@ TreeNode *get_sibling(TreeNode *node)
     }
 }
 
-TreeNode *find_node_in(TreeNode *a, ptr_list b)
-{
-    for (int i = 0; i < b.length; i++)
-    {
-        if (strcmp(((TreeNode *)b.elem_[i])->value, a->value) == 0)
-            return (TreeNode *)b.elem_[i];
-    }
-    return NULL;
-}
 char *find_attribute_in(const char *a, ptr_list b)
 {
     for (int i = 0; i < b.length; i++)
