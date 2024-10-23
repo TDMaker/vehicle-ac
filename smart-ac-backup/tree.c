@@ -77,69 +77,6 @@ void print_list(const char *name, ptr_list a)
     puts("\n===============");
 }
 
-Result get_result(ptr_list rho1, ptr_list rho2)
-{
-    Result result = {
-        .deleted_attributes_connected_by_or = make_ptr_list(0),
-        .deleted_attributes_connected_by_and = make_ptr_list(0),
-        .added_attributes_connected_by_or = make_ptr_list(0),
-        .added_attributes_connected_by_and = make_ptr_list(0),
-        .replaced_attributes_connected_by_or = make_ptr_list(0),
-        .replaced_attributes_connected_by_and = make_ptr_list(0),
-    };
-
-    for (int i = 0; i < rho1.length; i++)
-    {
-        if (find_in(rho1.elem_[i], rho2) == NULL)
-        {
-            if (strcmp(((TreeNode *)rho1.elem_[i])->parent->value, "||") == 0)
-            {
-                result.deleted_attributes_connected_by_or = add_to_list(result.deleted_attributes_connected_by_or, rho1.elem_[i]);
-            }
-            else
-            {
-                result.deleted_attributes_connected_by_and = add_to_list(result.deleted_attributes_connected_by_and, rho1.elem_[i]);
-            }
-        }
-    }
-    TreeNode *candidate = NULL;
-    for (int i = 0; i < rho2.length; i++)
-    {
-        if ((candidate = find_in(rho2.elem_[i], rho1)) == NULL)
-        {
-            if (strcmp(((TreeNode *)rho2.elem_[i])->parent->value, "||") == 0)
-            {
-                result.added_attributes_connected_by_or = add_to_list(result.added_attributes_connected_by_or, rho2.elem_[i]);
-            }
-            else
-            {
-                result.added_attributes_connected_by_and = add_to_list(result.added_attributes_connected_by_and, rho2.elem_[i]);
-            }
-        }
-        else
-        {
-            if (!is_same_path(rho2.elem_[i], candidate))
-            {
-                if (strcmp(((TreeNode *)rho2.elem_[i])->parent->value, "||") == 0)
-                {
-                    result.replaced_attributes_connected_by_or = add_to_list(result.replaced_attributes_connected_by_or, rho2.elem_[i]);
-                }
-                else
-                {
-                    result.replaced_attributes_connected_by_and = add_to_list(result.replaced_attributes_connected_by_and, rho2.elem_[i]);
-                }
-            }
-        }
-    }
-    print_list("deleted_attributes_connected_by_or", result.deleted_attributes_connected_by_or);
-    print_list("deleted_attributes_connected_by_and", result.deleted_attributes_connected_by_and);
-    print_list("added_attributes_connected_by_or", result.added_attributes_connected_by_or);
-    print_list("added_attributes_connected_by_or", result.added_attributes_connected_by_and);
-    print_list("replaced_attributes_connected_by_and", result.replaced_attributes_connected_by_and);
-    print_list("replaced_attributes_connected_by_or", result.replaced_attributes_connected_by_or);
-    return result;
-}
-
 int is_same_tree(TreeNode *a, TreeNode *b)
 {
     if (a == NULL && b == NULL)

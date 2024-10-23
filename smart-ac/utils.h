@@ -50,6 +50,7 @@ typedef enum
 
 typedef enum
 {
+    STATE_NOT_EXISTS = 0,
     STATE_START = 1,
     STATE_DELETE = 2,
     STATE_ADD = 3,

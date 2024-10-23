@@ -56,8 +56,7 @@ typedef struct
     ptr_list the_deleted;
 } RDResult;
 
-// Result get_result(ptr_list rho1, ptr_list rho2);
-RDResult get_the_deleted(ptr_list rho1, ptr_list rho2);
+RDResult get_the_deleted(ptr_list rho1, ptr_list rho2, TreeNode *root1, TreeNode *root2);
 void sys_init(PK *, MK *);
 void policy_init(EV *, IP *, PK, M *, char *PP, bool is_update);
 void key_dist(SK *, PK, MK, char **S, int size);
@@ -66,11 +65,6 @@ void rd_cleanup(PK *, MK *, SK *, EV *, IP *);
 void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new);
 void evidence_mod(EV *, UEV *);
 bool state_update(HashMap *_map, const char *attribute, Label _label); // TODO 换到别的地方
-element_t* get_this_lambda(HashMap* lambda, TreeNode* node);
-
-// void del_or(TreeNode *node, void *data);
-// void del_and(TreeNode *node, void *data);
-// void add_or(TreeNode *sibling, void *data);
+element_t *get_this_lambda(HashMap *lambda, TreeNode *node);
 HashMap *get_lambda(rdmat a, ptr_list rho, rdmat_mp b);
-const char *get_map_key(const char *_key);
 #endif /* __RUSC_H__ */

@@ -1,7 +1,7 @@
 #include "lsss.h"
 int cols = 1;
 int rows = 0;
-TreeNode **tmp_rho;
+char **tmp_rho;
 
 void set_childrens_vec(TreeNode *node, void **food)
 {
@@ -103,7 +103,7 @@ void get_W_rho(rdmat *W, ptr_list *rho, TreeNode *root)
         W->elem[i] = (int *)calloc(sizeof(int), cols);
     }
 
-    tmp_rho = (TreeNode **)malloc(sizeof(TreeNode *) * rows);
+    tmp_rho = (char **)malloc(sizeof(char *) * rows);
     breadth_first_traversal(root, rdmat_row_concat, (void **)&W);
     rho->elem_ = (void **)tmp_rho;
     (*rho).length = W->rows;
@@ -118,7 +118,7 @@ void rdmat_row_concat(TreeNode *node, void **food)
     {
         memcpy(W->elem[W->rows], node->vec.data, node->vec.length * sizeof(int));
         memset(W->elem[W->rows] + node->vec.length, 0, (W->cols - node->vec.length) * sizeof(int)); // padding 0s
-        tmp_rho[W->rows] = node;
+        tmp_rho[W->rows] = strdup(node->value);
         W->rows++;
     }
 }
