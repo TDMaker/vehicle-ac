@@ -46,7 +46,7 @@ void policy_init(EV *ev, IP *ip, PK pk, M *m, char *pp, bool is_update)
     if (!is_update)
     {
         root = get_complete_tree(pp);
-        get_W_rho(&(ev->W), &(ev->rho), root);
+        get_W_rho(&(ev->W), &(ev->attrs), root);
         element_init_GT(*m, pairing);
         element_random(*m);
     }
@@ -54,13 +54,13 @@ void policy_init(EV *ev, IP *ip, PK pk, M *m, char *pp, bool is_update)
     int L = ev->W.rows;
     printf("L is %d\n", L);
     rdmat_mp vec_v = make_rdmat_mp(L, 1);
-    for (int i = 0; i < ev->W.cols; i++)
+    for (int i = 0; i < L; i++)
     {
         element_random(vec_v.elem[i]);
     }
     if (!is_update)
     {
-        ip->lambda = get_lambda(ev->W, ev->rho, vec_v);
+        ip->lambda = get_lambda(ev->W, ev->attrs, vec_v);
         ip->W = ev->W;
     }
 
@@ -90,9 +90,9 @@ void policy_init(EV *ev, IP *ip, PK pk, M *m, char *pp, bool is_update)
     element_init_G1(ev->C0, pairing);
     element_pow_zn(ev->C0, pk.g, vec_v.elem[0]);
     ev->CX_ = initHashMap();
-    for (int i = 0; i < ev->rho.length; i++)
+    for (int i = 0; i < L; i++)
     {
-        char *attribute = (char *)ev->rho.elem_[i];
+        char *attribute = (char *)ev->attrs.elem_[i];
         element_t *tmpC = (element_t *)malloc(3 * sizeof(element_t));
         element_init_G1(tmpC[0], pairing);
         element_pow_zn(tmpC[0], pk.w, *(element_t *)map_search(ip->lambda, attribute));
@@ -122,8 +122,6 @@ void policy_init(EV *ev, IP *ip, PK pk, M *m, char *pp, bool is_update)
 void key_dist(SK *sk, PK pk, MK mk, char **s, int my_attr_size)
 {
     element_t *r_ = (element_t *)malloc(sizeof(element_t) * (my_attr_size + 1));
-    // int offset = 0;
-
     sk->KX_ = initHashMap();
 
     element_init_Zr(r_[my_attr_size], pairing);
@@ -146,15 +144,10 @@ void key_dist(SK *sk, PK pk, MK mk, char **s, int my_attr_size)
         element_pow_zn(tmp[0], pk.g, r_[i]);
 
         element_init_G1(tmp[1], pairing);
-
         element_from_hash(attr, attribute, strlen(attribute));
-
         element_pow_zn(tmp[1], pk.u, attr);
-
         element_mul(tmp[1], tmp[1], pk.h);
-
         element_pow_zn(tmp[1], tmp[1], r_[i]);
-
         element_mul(tmp[1], tmp[1], v2neg_r);
 
         map_insert(sk->KX_, attribute, tmp);
@@ -179,13 +172,14 @@ void key_dist(SK *sk, PK pk, MK mk, char **s, int my_attr_size)
     }
     free(r_);
 }
+
 int verify(M m, EV ev, SK sk, char **s, int my_attr_size)
 {
-    int *line_it_has = (int *)malloc(sizeof(ev.rho) * sizeof(int));
+    int *line_it_has = (int *)malloc(sizeof(ev.attrs) * sizeof(int));
     int offset = 0;
-    for (int i = 0; i < ev.rho.length; i++)
+    for (int i = 0; i < ev.attrs.length; i++)
     {
-        if (map_search(sk.KX_, (char *)ev.rho.elem_[i]) != NULL)
+        if (map_search(sk.KX_, (char *)ev.attrs.elem_[i]) != NULL)
         {
             line_it_has[offset++] = i;
         }
@@ -213,7 +207,7 @@ int verify(M m, EV ev, SK sk, char **s, int my_attr_size)
 
     for (int i = 0; i < offset; i++)
     {
-        const char *attribute = (char *)ev.rho.elem_[line_it_has[i]];
+        const char *attribute = (char *)ev.attrs.elem_[line_it_has[i]];
         element_t *tmpK = (element_t *)map_search(sk.KX_, attribute);
         element_t *tmpC = (element_t *)map_search(ev.CX_, attribute);
 
@@ -296,15 +290,15 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
 
     rdmat_print("new_W", new_W);
     print_list("new_rho", new_rho);
-    RDResult my_result = get_the_deleted(ev->rho, new_rho, root, new_root);
+    RDResult my_result = get_the_deleted(ev->attrs, new_rho, root, new_root);
     print_list("the deleted", my_result.the_deleted);
     print_list("the remains", my_result.the_remains);
     uev->states = initHashMap();
     uev->CX_ = initHashMap();
 
-    for (int i = 0; i < ev->rho.length; i++)
+    for (int i = 0; i < ev->attrs.length; i++)
     {
-        char *attribute = (char *)ev->rho.elem_[i];
+        char *attribute = (char *)ev->attrs.elem_[i];
         element_t *tmpC_ev = (element_t *)map_search(ev->CX_, attribute);
         element_t *tmpC_uev = (element_t *)malloc(3 * sizeof(element_t));
         element_init_G1(tmpC_uev[0], pairing);
@@ -504,10 +498,10 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
     }
 
     EV a_new_ev;
-    a_new_ev.rho = new_rho;
+    a_new_ev.attrs = new_rho;
     a_new_ev.W = new_W;
     ip->W = new_W;
-    uev->rho = new_rho;
+    uev->attrs = new_rho;
     uev->W = new_W;
 
     // rdmat_print("new_W", new_W);
@@ -533,45 +527,45 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
 
 void evidence_mod(EV *ev_cur, UEV *uev)
 {
-    for (int i = 0; i < uev->rho.length; i++)
+    for (int i = 0; i < uev->attrs.length; i++)
     {
         // element_mul(ev_cur->C, ev_cur->C, uev->C);
         // element_mul(ev_cur->C0, ev_cur->C0, uev->C0);
         // element_set(ev_cur->C, uev->C);
         // element_set(ev_cur->C0, uev->C0);
 
-        const char *attribute = (char *)uev->rho.elem_[i];
+        const char *attribute = (char *)uev->attrs.elem_[i];
         element_t *CX_in_uev = (element_t *)map_search(uev->CX_, attribute);
         element_t *CX_in_ev_cur = (element_t *)map_search(ev_cur->CX_, attribute);
         // printf("%s's CX_in_uev is %p, CX_in_ev_cur is %p\n", attribute, CX_in_uev, CX_in_ev_cur);
         switch ((State)map_search(uev->states, attribute))
         {
         case STATE_MULTIPLY:
-        puts("``````````````````````````````````MUL");
+            puts("``````````````````````````````````MUL");
             element_mul(CX_in_ev_cur[0], CX_in_ev_cur[0], CX_in_uev[0]);
             element_mul(CX_in_ev_cur[1], CX_in_ev_cur[1], CX_in_uev[1]);
             element_mul(CX_in_ev_cur[2], CX_in_ev_cur[2], CX_in_uev[2]);
             break;
         case STATE_REPLACE:
-        puts("```````````````````````````REPLACE");
+            puts("```````````````````````````REPLACE");
             element_set(CX_in_ev_cur[0], CX_in_uev[0]);
             element_set(CX_in_ev_cur[1], CX_in_uev[1]);
             element_set(CX_in_ev_cur[2], CX_in_uev[2]);
             break;
         case STATE_DELETE:
-        puts("`````````````````````````````````DEL");
+            puts("`````````````````````````````````DEL");
             map_remove(ev_cur->CX_, attribute);
             break;
         case STATE_ADD:
-        puts("`````````````````````````````````ADD");
-        puts(attribute);
+            puts("`````````````````````````````````ADD");
+            puts(attribute);
             map_insert(ev_cur->CX_, attribute, (void *)CX_in_uev);
             break;
         default:
             break;
         }
     }
-    ev_cur->rho = uev->rho;
+    ev_cur->attrs = uev->attrs;
     ev_cur->W = uev->W;
 }
 
@@ -586,29 +580,23 @@ bool state_update(HashMap *_map, const char *attribute, Label _label)
     return map_update(_map, attribute, (void *)transition(this_state, _label));
 }
 
-HashMap *get_lambda(rdmat a, ptr_list rho, rdmat_mp b)
+HashMap *get_lambda(rdmat a, ptr_list attrs, rdmat_mp b)
 {
     HashMap *map = initHashMap();
-    rdmat_mp c = make_rdmat_mp(a.rows, b.cols);
+    rdmat_mp c = make_rdmat_mp(a.rows, 1);
     element_t prod;
     element_init_Zr(prod, pairing);
     for (int i = 0; i < a.rows; i++)
     {
-        for (int j = 0; j < b.cols; j++)
+        element_set0(c.elem[i]);
+        for (int j = 0; j < a.cols; j++)
         {
-            element_set0(c.elem[i * b.cols + j]);
-            for (int k = 0; k < a.cols; k++)
-            {
-                element_mul_si(prod, b.elem[k * b.cols + j], a.elem[i][k]);
-                element_add(c.elem[i * c.cols + j], c.elem[i * c.cols + j], prod);
-            }
+            element_mul_si(prod, b.elem[j], a.elem[i][j]);
+            element_add(c.elem[i], c.elem[i], prod);
         }
+        map_insert(map, (char *)attrs.elem_[i], c.elem[i]);
     }
     element_clear(prod);
-    for (int i = 0; i < rho.length; i++)
-    {
-        map_insert(map, (char *)rho.elem_[i], c.elem[i]);
-    }
     return map;
 }
 

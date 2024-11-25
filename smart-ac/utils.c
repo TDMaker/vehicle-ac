@@ -282,6 +282,7 @@ void free_rdmat_mp(rdmat_mp target)
             element_clear(target.elem[target.cols * i + j]);
         }
     }
+    free(target.elem);
     return;
 }
 

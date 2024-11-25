@@ -1,7 +1,7 @@
 #include <include/lsss.h>
 int cols = 1;
 int rows = 0;
-char **tmp_rho;
+char **tmp_attrs;
 
 void set_childrens_vec(TreeNode *node, void **food)
 {
@@ -93,7 +93,7 @@ void init_vec(TreeNode *root)
     breadth_first_traversal(root, set_childrens_vec, NULL);
 }
 
-void get_W_rho(rdmat *W, ptr_list *rho, TreeNode *root)
+void get_W_rho(rdmat *W, ptr_list *edge, TreeNode *root)
 {
     W->cols = cols;
     W->rows = 0;
@@ -103,12 +103,12 @@ void get_W_rho(rdmat *W, ptr_list *rho, TreeNode *root)
         W->elem[i] = (int *)calloc(sizeof(int), cols);
     }
 
-    tmp_rho = (char **)malloc(sizeof(char *) * rows);
+    tmp_attrs = (char **)malloc(sizeof(char *) * rows);
     breadth_first_traversal(root, rdmat_row_concat, (void **)&W);
-    rho->elem_ = (void **)tmp_rho;
-    (*rho).length = W->rows;
-    (*rho).capacity = W->rows;
-    tmp_rho = NULL;
+    edge->elem_ = (void **)tmp_attrs;
+    edge->length = W->rows;
+    edge->capacity = W->rows;
+    tmp_attrs = NULL;
 }
 
 void rdmat_row_concat(TreeNode *node, void **food)
@@ -118,7 +118,7 @@ void rdmat_row_concat(TreeNode *node, void **food)
     {
         memcpy(W->elem[W->rows], node->vec.data, node->vec.length * sizeof(int));
         memset(W->elem[W->rows] + node->vec.length, 0, (W->cols - node->vec.length) * sizeof(int)); // padding 0s
-        tmp_rho[W->rows] = strdup(node->value);
+        tmp_attrs[W->rows] = strdup(node->value);
         W->rows++;
     }
 }
