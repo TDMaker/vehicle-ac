@@ -1,4 +1,4 @@
-#include "tree.h"
+#include <include/tree.h>
 
 TreeNode *get_sibling(TreeNode *node)
 {
@@ -92,10 +92,10 @@ int is_same_tree(TreeNode *a, TreeNode *b)
 {
     if (a == NULL && b == NULL)
         return 1;
-    else if ((a == NULL) || (b = NULL))
+    else if ((a == NULL) || (b == NULL))
         return 0;
     else
-        return (!strcmp(a->value, b->value) == 0) && ((is_same_tree(a->left, b->left) && is_same_tree(a->right, b->right)) || (is_same_tree(a->left, b->right) && is_same_tree(a->right, b->left)));
+        return (strcmp(a->value, b->value) == 0) && ((is_same_tree(a->left, b->left) && is_same_tree(a->right, b->right)) || (is_same_tree(a->left, b->right) && is_same_tree(a->right, b->left)));
 }
 
 int del_from_tree(TreeNode *node2del)

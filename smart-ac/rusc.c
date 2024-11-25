@@ -1,4 +1,4 @@
-#include "rusc.h"
+#include <include/rusc.h>
 #define BUFFER_SIZE 1024
 static char buffer[BUFFER_SIZE];
 pairing_t pairing; // Pairing that should be in PK is placed in global scope so that it can be linked correctly by other compiled modules.
@@ -122,7 +122,7 @@ void policy_init(EV *ev, IP *ip, PK pk, M *m, char *pp, bool is_update)
 void key_dist(SK *sk, PK pk, MK mk, char **s, int my_attr_size)
 {
     element_t *r_ = (element_t *)malloc(sizeof(element_t) * (my_attr_size + 1));
-    int offset = 0;
+    // int offset = 0;
 
     sk->KX_ = initHashMap();
 

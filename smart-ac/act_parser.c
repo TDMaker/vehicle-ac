@@ -1,4 +1,4 @@
-#include "act_parser.h"
+#include <include/act_parser.h>
 // 初始化 Lexer
 void init_lexer(Lexer *lexer, const char *input)
 {
@@ -148,9 +148,11 @@ void free_tree(TreeNode *node)
 
 TreeNode *get_root(char *input)
 {
-    Lexer lexer;
+    // lexer->input = strdup(input);
+    // lexer->pos = 0;
+    Lexer lexer = {.input = strdup(input), .pos = 0};
     Parser parser = {.lexer = lexer};
-    init_lexer(&parser.lexer, input);
+    // init_lexer(&parser.lexer, input);
 
     return parse_and_or(&parser);
 }

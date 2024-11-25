@@ -1,4 +1,4 @@
-#include "rusc.h"
+#include <include/rusc.h>
 #define COUNT(a) ((sizeof(a)) / (sizeof(a[0])))
 int main()
 {
@@ -52,3 +52,12 @@ int main()
 
     return 0;
 }
+
+/**
+ * 目前的状态：
+ * 代码无内存bug，加解密没问题，但策略修改部分需要改
+ * 论文中，策略更改时，服务端依旧需要重新运行策略初始化，这不经济
+ * 要改成按需重新生成组件
+ * 然后通过什么方式发给终端，然后终端通过什么计算得到新的evidence
+ * 总之从evidence modify后就需要重新设计了。
+ */

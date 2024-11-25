@@ -1,8 +1,8 @@
 #ifndef __RUSC_H__
 #define __RUSC_H__
-#include "lsss.h"
-#include "utils.h"
-#include "tree.h"
+#include <include/lsss.h>
+#include <include/utils.h>
+#include <include/tree.h>
 
 typedef struct
 {
