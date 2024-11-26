@@ -36,6 +36,7 @@
         "locale": "c",
         "ios": "c",
         "random": "c",
-        "rd_stack.h": "c"
+        "rd_stack.h": "c",
+        "tree.h": "c"
     }
 }

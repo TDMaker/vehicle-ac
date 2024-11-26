@@ -1,4 +1,4 @@
-#include <include/lsss.h>
+#include <lsss.h>
 int cols = 1;
 int rows = 0;
 char **tmp_attrs;

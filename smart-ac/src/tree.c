@@ -1,4 +1,4 @@
-#include <include/tree.h>
+#include <tree.h>
 
 TreeNode *get_sibling(TreeNode *node)
 {
@@ -26,14 +26,14 @@ TreeNode *get_sibling(TreeNode *node)
     }
 }
 
-char *find_attribute_in(const char *a, ptr_list b)
+bool is_attribute_in(const char *a, ptr_list b)
 {
     for (int i = 0; i < b.length; i++)
     {
         if (strcmp((char *)b.elem_[i], a) == 0)
-            return (char *)b.elem_[i];
+            return true;
     }
-    return NULL;
+    return false;
 }
 bool is_same_path(TreeNode *a, TreeNode *b)
 {
@@ -83,7 +83,7 @@ void print_list(const char *name, ptr_list a)
     printf("Elemenets in %s is:\n", name);
     for (int i = 0; i < a.length; i++)
     {
-        printf("%s ", (char*)a.elem_[i]);
+        printf("%s ", (char *)a.elem_[i]);
     }
     puts("\n===============");
 }
@@ -98,19 +98,10 @@ int is_same_tree(TreeNode *a, TreeNode *b)
         return (strcmp(a->value, b->value) == 0) && ((is_same_tree(a->left, b->left) && is_same_tree(a->right, b->right)) || (is_same_tree(a->left, b->right) && is_same_tree(a->right, b->left)));
 }
 
-int del_from_tree(TreeNode *node2del)
+TreeNode *del_from_tree(TreeNode *node2del)
 {
     TreeNode *sibling = get_sibling(node2del);
     TreeNode *parent = node2del->parent;
-    int connector = -1;
-    if (is_or(parent->value))
-    {
-        connector = 0;
-    }
-    else if (is_and(parent->value))
-    {
-        connector = 1;
-    }
     strcpy(parent->value, sibling->value);
     parent->left = sibling->left;
     parent->right = sibling->right;
@@ -125,7 +116,7 @@ int del_from_tree(TreeNode *node2del)
     free(sibling);
     free(node2del);
 
-    return connector;
+    return parent;
 }
 
 void _find_that_kid(TreeNode *node, void **food)
@@ -148,7 +139,6 @@ ptr_list get_all_under_nodes(TreeNode *_node)
     }
     return list;
 }
-
 
 TreeNode *add_to_tree(TreeNode *root, int path, int connector, const char *attribute)
 {

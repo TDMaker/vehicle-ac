@@ -1,4 +1,4 @@
-#include "act_visitor.h"
+#include <act_visitor.h>
 
 // 初始化空队列
 void init_queue(Queue *queue)
@@ -53,7 +53,7 @@ TreeNode *dequeue(Queue *queue)
 }
 
 // 广度优先遍历二叉树
-void breadth_first_traversal(TreeNode *root, my_operator op, void* data)
+void breadth_first_traversal(TreeNode *root, my_operator op, void** food)
 {
     if (root == NULL)
     {
@@ -67,7 +67,7 @@ void breadth_first_traversal(TreeNode *root, my_operator op, void* data)
     while (!is_empty(&queue))
     {
         TreeNode *current = dequeue(&queue);
-        op(current, data);
+        op(current, food);
 
         if (current->left)
         {

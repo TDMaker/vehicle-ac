@@ -1,4 +1,4 @@
-#include <include/act_parser.h>
+#include <act_parser.h>
 // 初始化 Lexer
 void init_lexer(Lexer *lexer, const char *input)
 {

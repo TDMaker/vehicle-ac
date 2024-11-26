@@ -1,4 +1,4 @@
-#include <include/rusc.h>
+#include <rusc.h>
 #define BUFFER_SIZE 1024
 static char buffer[BUFFER_SIZE];
 pairing_t pairing; // Pairing that should be in PK is placed in global scope so that it can be linked correctly by other compiled modules.
@@ -237,6 +237,7 @@ int verify(M m, EV ev, SK sk, char **s, int my_attr_size)
     free_rdmat_f(omega);
     return result;
 }
+
 /*
 void rd_cleanup(PK *pk, MK *mk, SK *sk, EV *ev, IP *ip)
 {
@@ -280,19 +281,21 @@ void rd_cleanup(PK *pk, MK *mk, SK *sk, EV *ev, IP *ip)
     pairing_clear(pairing);
 }
 */
+
 void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
 {
     TreeNode *new_root = get_complete_tree(pp_new);
     // breadth_first_traversal(new_root, display, NULL);
     rdmat new_W;
-    ptr_list new_rho;
-    get_W_rho(&new_W, &new_rho, new_root);
+    ptr_list new_attrs;
+    get_W_rho(&new_W, &new_attrs, new_root);
 
     rdmat_print("new_W", new_W);
-    print_list("new_rho", new_rho);
-    RDResult my_result = get_the_deleted(ev->attrs, new_rho, root, new_root);
+    print_list("new_attrs", new_attrs);
+    RDResult my_result = get_the_result(ev->attrs, new_attrs, root, new_root);
     print_list("the deleted", my_result.the_deleted);
     print_list("the remains", my_result.the_remains);
+    // If the remains is empty, it's better to build the policy tree from scratch rather than modify it through this method.
     uev->states = initHashMap();
     uev->CX_ = initHashMap();
 
@@ -331,12 +334,11 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
         state_update(uev->states, attribute, LABEL_DELETE);
 
         TreeNode *node2del = find_node_from_tree(attribute, root);
-        TreeNode *lvlup_node = node2del->parent;
-
-        int connector = del_from_tree(node2del);
+        bool conn_is_and = is_and(node2del->parent->value);
+        TreeNode *lvlup_node = del_from_tree(node2del); // indeed need to modeify the old tree for the later compairing with the new one.
         element_t *_lambda_A = (element_t *)map_search(ip->lambda, attribute);
-
-        if (connector == 1)
+        // or is 0, and is 1
+        if (conn_is_and)
         {
             ptr_list the_affected = get_all_under_nodes(lvlup_node);
 
@@ -373,16 +375,18 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
 
     Stack *stack = rd_stk_create_stack(100);
     TreeNode *node2del;
-    for (int i = 0; i < new_rho.length; i++)
+    for (int i = 0; i < new_attrs.length; i++)
     {
-        node2del = find_node_from_tree((char *)new_rho.elem_[i], new_root);
-        if (node2del != NULL && !find_attribute_in(node2del->value, my_result.the_remains))
+        node2del = find_node_from_tree((char *)new_attrs.elem_[i], new_root);
+        if (node2del != NULL && !is_attribute_in(node2del->value, my_result.the_remains))
         {
+            // find the node which is in new_attrs but not in the_remains, indicating this node was new added or first deleted and then added again.
             int path = get_path(node2del);
             if (path != -1)
             {
-                int connector = del_from_tree(node2del);
-                rd_stk_push(stack, (StkItem){.ptr = (char *)new_rho.elem_[i], .path = path, .connector = connector});
+                int connector = is_and(node2del->parent->value) ? 1 : 0;
+                del_from_tree(node2del);
+                rd_stk_push(stack, (StkItem){.ptr = (char *)new_attrs.elem_[i], .path = path, .connector = connector});
             }
         }
     }
@@ -486,9 +490,9 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
     element_clear(tmp2);
     element_clear(tmp3);
 
-    for (int i = 0; i < new_rho.length; i++)
+    for (int i = 0; i < new_attrs.length; i++)
     {
-        const char *attribute = (char *)new_rho.elem_[i];
+        const char *attribute = (char *)new_attrs.elem_[i];
         State this_state = (State)map_search(uev->states, attribute);
         if (this_state == STATE_ADD_ || this_state == STATE_MULTIPLY_)
         {
@@ -498,10 +502,10 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
     }
 
     EV a_new_ev;
-    a_new_ev.attrs = new_rho;
+    a_new_ev.attrs = new_attrs;
     a_new_ev.W = new_W;
     ip->W = new_W;
-    uev->attrs = new_rho;
+    uev->attrs = new_attrs;
     uev->W = new_W;
 
     // rdmat_print("new_W", new_W);
@@ -513,9 +517,9 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
     element_init_G1(uev->C0, pairing);
     element_set(uev->C, a_new_ev.C);
     element_set(uev->C0, a_new_ev.C0);
-    for (int i = 0; i < new_rho.length; i++)
+    for (int i = 0; i < new_attrs.length; i++)
     {
-        const char *attribute = (char *)new_rho.elem_[i];
+        const char *attribute = (char *)new_attrs.elem_[i];
         element_t *tmpC_uev = (element_t *)map_search(uev->CX_, attribute);
         element_t *tmpC_ev_new = (element_t *)map_search(a_new_ev.CX_, attribute);
 
@@ -600,27 +604,26 @@ HashMap *get_lambda(rdmat a, ptr_list attrs, rdmat_mp b)
     return map;
 }
 
-RDResult get_the_deleted(ptr_list rho1, ptr_list rho2, TreeNode *root1, TreeNode *root2)
+RDResult get_the_result(ptr_list attrs1, ptr_list attrs2, TreeNode *root1, TreeNode *root2)
 {
     RDResult my_result = {
         .the_deleted = make_ptr_list(0),
         .the_remains = make_ptr_list(0),
     };
-    for (int i = 0; i < rho1.length; i++)
+    for (int i = 0; i < attrs1.length; i++)
     {
-        char *this_attribute = (char *)rho1.elem_[i];
-        if (find_attribute_in(this_attribute, rho2) == NULL)
+        char *this_attribute = (char *)attrs1.elem_[i];
+        if (!is_attribute_in(this_attribute, attrs2))
         {
             my_result.the_deleted = add_to_list(my_result.the_deleted, strdup(this_attribute));
         }
     }
-    for (int i = 0; i < rho2.length; i++)
+    for (int i = 0; i < attrs2.length; i++)
     {
-        char *this_attribute = rho2.elem_[i];
-        char *candidate = find_attribute_in(this_attribute, rho1);
-        if (candidate != NULL)
+        char *this_attribute = attrs2.elem_[i];
+        if (is_attribute_in(this_attribute, attrs1))
         {
-            if (is_same_path(find_node_from_tree(this_attribute, root2), find_node_from_tree(candidate, root1)))
+            if (is_same_path(find_node_from_tree(this_attribute, root2), find_node_from_tree(this_attribute, root1)))
             {
                 my_result.the_remains = add_to_list(my_result.the_remains, strdup(this_attribute));
             }

@@ -1,4 +1,4 @@
-#include <include/rusc.h>
+#include <rusc.h>
 #define COUNT(a) ((sizeof(a)) / (sizeof(a[0])))
 int main()
 {
