@@ -5,6 +5,8 @@
 #include "tree.h"
 #include "rd_hashmap.h"
 #include "rd_stack.h"
+#define COUNT(a) ((sizeof(a)) / (sizeof(a[0])))
+
 typedef struct
 {
     element_t g;
@@ -61,7 +63,7 @@ void policy_init(EV *, IP *, PK, M *, char *PP, bool is_update);
 void key_dist(SK *, PK, MK, char **S, int size);
 int verify(M m, EV ev, SK sk, char **s, int my_attr_size);
 void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new);
-void evidence_mod(EV *, UEV *);
+void evidence_mod(UEV *uev, EV *ev);
 void rd_cleanup(PK *, MK *, SK *, EV *, IP *);
 
 RDResult get_the_result(ptr_list attrs1, ptr_list attrs2, TreeNode *root1, TreeNode *root2);

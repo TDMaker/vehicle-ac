@@ -3,6 +3,7 @@
 static char buffer[BUFFER_SIZE];
 pairing_t pairing; // Pairing that should be in PK is placed in global scope so that it can be linked correctly by other compiled modules.
 TreeNode *root;
+const char *UNIVERS[] = {"A", "B", "C", "D", "E", "F", "G", "H", "Y", "Z"};
 
 int init_pairing()
 {
@@ -294,11 +295,13 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
     print_list("new_attrs", new_attrs);
     RDResult my_result = get_the_result(ev->attrs, new_attrs, root, new_root);
     print_list("the deleted", my_result.the_deleted);
-    print_list("the remains", my_result.the_remains);
-    // If the remains is empty, it's better to build the policy tree from scratch rather than modify it through this method.
+    print_list("the remains", my_result.the_remains); // If the remains is empty, it's better to build the policy tree from scratch rather than modify it through this method.
+    element_init_GT(uev->C, pairing);
+    element_init_G1(uev->C0, pairing);
+    element_set(uev->C, ev->C);
+    element_set(uev->C0, ev->C0);
     uev->states = initHashMap();
     uev->CX_ = initHashMap();
-
     for (int i = 0; i < ev->attrs.length; i++)
     {
         char *attribute = (char *)ev->attrs.elem_[i];
@@ -311,6 +314,7 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
         element_set(tmpC_uev[1], tmpC_ev[1]);
         element_set(tmpC_uev[2], tmpC_ev[2]);
         map_insert(uev->CX_, attribute, tmpC_uev);
+        map_insert(uev->states, attribute, (void *)STATE_START);
     }
 
     element_t tmp1, tmp2, tmp3;
@@ -330,7 +334,7 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
         element_clear(tmpC[1]);
         element_clear(tmpC[2]);
         free(tmpC);
-        map_remove(uev->CX_, attribute);
+        map_remove(ev->CX_, attribute);
         state_update(uev->states, attribute, LABEL_DELETE);
 
         TreeNode *node2del = find_node_from_tree(attribute, root);
@@ -386,6 +390,7 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
             {
                 int connector = is_and(node2del->parent->value) ? 1 : 0;
                 del_from_tree(node2del);
+
                 rd_stk_push(stack, (StkItem){.ptr = (char *)new_attrs.elem_[i], .path = path, .connector = connector});
             }
         }
@@ -490,9 +495,9 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
     element_clear(tmp2);
     element_clear(tmp3);
 
-    for (int i = 0; i < new_attrs.length; i++)
+    for (int i = 0; i < COUNT(UNIVERS); i++)
     {
-        const char *attribute = (char *)new_attrs.elem_[i];
+        const char *attribute = UNIVERS[i];
         State this_state = (State)map_search(uev->states, attribute);
         if (this_state == STATE_ADD_ || this_state == STATE_MULTIPLY_)
         {
@@ -505,18 +510,20 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
     a_new_ev.attrs = new_attrs;
     a_new_ev.W = new_W;
     ip->W = new_W;
-    uev->attrs = new_attrs;
     uev->W = new_W;
+    uev->attrs = new_attrs;
 
     // rdmat_print("new_W", new_W);
     // print_list("new_rho", new_rho);
 
     policy_init(&a_new_ev, ip, pk, NULL, pp_new, true);
 
-    element_init_GT(uev->C, pairing);
-    element_init_G1(uev->C0, pairing);
-    element_set(uev->C, a_new_ev.C);
-    element_set(uev->C0, a_new_ev.C0);
+    // element_init_GT(uev->C, pairing);
+    // element_init_G1(uev->C0, pairing);
+    // element_set(uev->C, a_new_ev.C);
+    // element_set(uev->C0, a_new_ev.C0);
+    element_mul(uev->C, uev->C, a_new_ev.C);
+    element_mul(uev->C0, uev->C0, a_new_ev.C0);
     for (int i = 0; i < new_attrs.length; i++)
     {
         const char *attribute = (char *)new_attrs.elem_[i];
@@ -529,16 +536,16 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
     }
 }
 
-void evidence_mod(EV *ev_cur, UEV *uev)
+void evidence_mod(UEV *uev, EV *ev_cur)
 {
-    for (int i = 0; i < uev->attrs.length; i++)
+    element_mul(ev_cur->C, ev_cur->C, uev->C);
+    element_mul(ev_cur->C0, ev_cur->C0, uev->C0);
+    for (int i = 0; i < COUNT(UNIVERS); i++)
     {
-        // element_mul(ev_cur->C, ev_cur->C, uev->C);
-        // element_mul(ev_cur->C0, ev_cur->C0, uev->C0);
         // element_set(ev_cur->C, uev->C);
         // element_set(ev_cur->C0, uev->C0);
 
-        const char *attribute = (char *)uev->attrs.elem_[i];
+        const char *attribute = UNIVERS[i];
         element_t *CX_in_uev = (element_t *)map_search(uev->CX_, attribute);
         element_t *CX_in_ev_cur = (element_t *)map_search(ev_cur->CX_, attribute);
         // printf("%s's CX_in_uev is %p, CX_in_ev_cur is %p\n", attribute, CX_in_uev, CX_in_ev_cur);
@@ -558,6 +565,7 @@ void evidence_mod(EV *ev_cur, UEV *uev)
             break;
         case STATE_DELETE:
             puts("`````````````````````````````````DEL");
+            puts(attribute);
             map_remove(ev_cur->CX_, attribute);
             break;
         case STATE_ADD:

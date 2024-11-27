@@ -1,5 +1,5 @@
 #include <rusc.h>
-#define COUNT(a) ((sizeof(a)) / (sizeof(a[0])))
+
 int main()
 {
     /******************************* SysInit()→{PK,MK} *******************************************************************/
@@ -43,8 +43,7 @@ int main()
 
     /******************************* EvidMod(EV_cur,UEV)→{EV_new} **********************************************************/
 
-    evidence_mod(&ev, &uev);
-
+    evidence_mod(&uev, &ev);
     verify(m, ev, sk3, S3, COUNT(S3)) == 1 ? puts("S3 Decryption succeed.") : puts("S3 Decryption faild!");
 
     // Clear
