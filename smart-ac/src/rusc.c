@@ -96,8 +96,16 @@ void policy_init(EV *ev, IP *ip, PK pk, M *m, char *pp, bool is_update)
         char *attribute = (char *)ev->attrs.elem_[i];
         element_t *tmpC = (element_t *)malloc(3 * sizeof(element_t));
         element_init_G1(tmpC[0], pairing);
-        element_pow_zn(tmpC[0], pk.w, *(element_t *)map_search(ip->lambda, attribute));
         element_pow_zn(tmp1, pk.v, t_.elem[i]);
+        if (!is_update)
+        {
+            element_pow_zn(tmpC[0], pk.w, *(element_t *)map_search(ip->lambda, attribute));
+        }
+        else
+        {
+            element_set1(tmpC[0]);
+        }
+
         element_mul(tmpC[0], tmpC[0], tmp1);
         element_init_G1(tmpC[1], pairing);
         element_from_hash(tmp2, attribute, strlen(attribute));
@@ -111,6 +119,28 @@ void policy_init(EV *ev, IP *ip, PK pk, M *m, char *pp, bool is_update)
 
         map_insert(ev->CX_, attribute, tmpC);
     }
+
+    //-----
+
+    // element_t *TMP_CX_Z = map_search(ev->CX_, "Z");
+    // element_t *TMP_CX_G = map_search(ev->CX_, "G");
+    // element_t *TMP_CX_E;
+    // if (is_update)
+    //     TMP_CX_E = map_search(ev->CX_, "Y");
+    // else
+    //     TMP_CX_E = map_search(ev->CX_, "E");
+
+    // element_printf("C1Z = %B\n", TMP_CX_Z[0]);
+    // element_printf("C2Z = %B\n", TMP_CX_Z[1]);
+    // element_printf("C3Z = %B\n", TMP_CX_Z[2]);
+    // element_printf("C1G = %B\n", TMP_CX_G[0]);
+    // element_printf("C2G = %B\n", TMP_CX_G[1]);
+    // element_printf("C3G = %B\n", TMP_CX_G[2]);
+    // element_printf("C1E = %B\n", TMP_CX_E[0]);
+    // element_printf("C2E = %B\n", TMP_CX_E[1]);
+    // element_printf("C3E = %B\n", TMP_CX_E[2]);
+
+    //------
 
     element_clear(tmp1);
     element_clear(tmp2);
@@ -182,6 +212,7 @@ int verify(M m, EV ev, SK sk, char **s, int my_attr_size)
     {
         if (map_search(sk.KX_, (char *)ev.attrs.elem_[i]) != NULL)
         {
+            printf("I have %s and its index is %d\n", (char *)ev.attrs.elem_[i], i);
             line_it_has[offset++] = i;
         }
     }
@@ -334,14 +365,15 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
         element_clear(tmpC[1]);
         element_clear(tmpC[2]);
         free(tmpC);
-        map_remove(ev->CX_, attribute);
+        map_remove(uev->CX_, attribute);
         state_update(uev->states, attribute, LABEL_DELETE);
 
         TreeNode *node2del = find_node_from_tree(attribute, root);
         bool conn_is_and = is_and(node2del->parent->value);
         TreeNode *lvlup_node = del_from_tree(node2del); // indeed need to modeify the old tree for the later compairing with the new one.
         element_t *_lambda_A = (element_t *)map_search(ip->lambda, attribute);
-        // or is 0, and is 1
+        element_printf("E's lambda is %B\n", *_lambda_A);
+        // assert(conn_is_and == true);
         if (conn_is_and)
         {
             ptr_list the_affected = get_all_under_nodes(lvlup_node);
@@ -384,6 +416,7 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
         node2del = find_node_from_tree((char *)new_attrs.elem_[i], new_root);
         if (node2del != NULL && !is_attribute_in(node2del->value, my_result.the_remains))
         {
+            assert(strcmp(node2del->value, "Y") == 0);
             // find the node which is in new_attrs but not in the_remains, indicating this node was new added or first deleted and then added again.
             int path = get_path(node2del);
             if (path != -1)
@@ -395,6 +428,7 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
             }
         }
     }
+    // So far, the new tree as well as being clipped to look just like the old one.
 
     while (!rd_stk_is_empty(stack))
     {
@@ -430,6 +464,8 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
             element_pow_zn(tmpC[2], pk.g, t_A);
 
             map_insert(uev->CX_, the_new_added->value, (void *)tmpC);
+            // element_t *TMP_CX_Y = map_search(uev->CX_, "Y");
+            // element_printf("%s is added\nCY1=%B\nCY2=%B\nCY3=%B\n", the_new_added->value, TMP_CX_Y[0], TMP_CX_Y[1], TMP_CX_Y[2]);
             state_update(uev->states, the_new_added->value, LABEL_ADD);
         }
         else if (item.connector == 1) // add and
@@ -494,7 +530,6 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
     element_clear(tmp1);
     element_clear(tmp2);
     element_clear(tmp3);
-
     for (int i = 0; i < COUNT(UNIVERS); i++)
     {
         const char *attribute = UNIVERS[i];
@@ -515,6 +550,8 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
 
     // rdmat_print("new_W", new_W);
     // print_list("new_rho", new_rho);
+    // element_t *TMP_CX_Y2 = map_search(uev->CX_, "Y");
+    // element_printf("================%s is added\nCY1=%B\nCY2=%B\nCY3=%B\n", "Y", TMP_CX_Y2[0], TMP_CX_Y2[1], TMP_CX_Y2[2]);
 
     policy_init(&a_new_ev, ip, pk, NULL, pp_new, true);
 
@@ -524,6 +561,7 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
     // element_set(uev->C0, a_new_ev.C0);
     element_mul(uev->C, uev->C, a_new_ev.C);
     element_mul(uev->C0, uev->C0, a_new_ev.C0);
+
     for (int i = 0; i < new_attrs.length; i++)
     {
         const char *attribute = (char *)new_attrs.elem_[i];
@@ -534,17 +572,32 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
         element_mul(tmpC_uev[1], tmpC_uev[1], tmpC_ev_new[1]);
         element_mul(tmpC_uev[2], tmpC_uev[2], tmpC_ev_new[2]);
     }
+
+    //-----
+
+    // element_t *TMP_CX_Z = map_search(uev->CX_, "Z");
+    // element_t *TMP_CX_G = map_search(uev->CX_, "G");
+    // element_t *TMP_CX_Y = map_search(uev->CX_, "Y");
+
+    // element_printf("C1Z = %B\n", TMP_CX_Z[0]);
+    // element_printf("C2Z = %B\n", TMP_CX_Z[1]);
+    // element_printf("C3Z = %B\n", TMP_CX_Z[2]);
+    // element_printf("C1G = %B\n", TMP_CX_G[0]);
+    // element_printf("C2G = %B\n", TMP_CX_G[1]);
+    // element_printf("C3G = %B\n", TMP_CX_G[2]);
+    // element_printf("C1Y = %B\n", TMP_CX_Y[0]);
+    // element_printf("C2Y = %B\n", TMP_CX_Y[1]);
+    // element_printf("C3Y = %B\n", TMP_CX_Y[2]);
+
+    //------
 }
 
 void evidence_mod(UEV *uev, EV *ev_cur)
 {
-    element_mul(ev_cur->C, ev_cur->C, uev->C);
-    element_mul(ev_cur->C0, ev_cur->C0, uev->C0);
+    // element_set(ev_cur->C, uev->C);
+    // element_set(ev_cur->C0, uev->C0);
     for (int i = 0; i < COUNT(UNIVERS); i++)
     {
-        // element_set(ev_cur->C, uev->C);
-        // element_set(ev_cur->C0, uev->C0);
-
         const char *attribute = UNIVERS[i];
         element_t *CX_in_uev = (element_t *)map_search(uev->CX_, attribute);
         element_t *CX_in_ev_cur = (element_t *)map_search(ev_cur->CX_, attribute);
@@ -553,6 +606,7 @@ void evidence_mod(UEV *uev, EV *ev_cur)
         {
         case STATE_MULTIPLY:
             puts("``````````````````````````````````MUL");
+            puts(attribute);
             element_mul(CX_in_ev_cur[0], CX_in_ev_cur[0], CX_in_uev[0]);
             element_mul(CX_in_ev_cur[1], CX_in_ev_cur[1], CX_in_uev[1]);
             element_mul(CX_in_ev_cur[2], CX_in_ev_cur[2], CX_in_uev[2]);
@@ -571,7 +625,14 @@ void evidence_mod(UEV *uev, EV *ev_cur)
         case STATE_ADD:
             puts("`````````````````````````````````ADD");
             puts(attribute);
-            map_insert(ev_cur->CX_, attribute, (void *)CX_in_uev);
+            element_t *CX2add = (element_t *)malloc(3 * sizeof(element_t));
+            element_init_G1(CX2add[0], pairing);
+            element_init_G1(CX2add[1], pairing);
+            element_init_G1(CX2add[2], pairing);
+            element_set(CX2add[0], CX_in_uev[0]);
+            element_set(CX2add[1], CX_in_uev[1]);
+            element_set(CX2add[2], CX_in_uev[2]);
+            map_insert(ev_cur->CX_, attribute, (void *)CX2add);
             break;
         default:
             break;

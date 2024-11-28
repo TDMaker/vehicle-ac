@@ -178,19 +178,19 @@ TreeNode *add_to_tree(TreeNode *root, int path, int connector, const char *attri
 
 void print_tree(TreeNode *node)
 {
-    printf("I am %s, my left is %p, right is %p\n", node->value, node->left, node->right);
+    // printf("I am %s, my left is %p, right is %p\n", node->value, node->left, node->right);
     if (node != NULL)
     {
         if (is_connector(node->value))
         {
-            printf("left->");
+            printf("%s -> left:", node->value);
             print_tree(node->left);
-            printf("right->");
+            printf("%s -> right:", node->value);
             print_tree(node->right);
         }
         else
         {
-            puts(node->value);
+            printf("%s\n", node->value);
         }
     }
 }

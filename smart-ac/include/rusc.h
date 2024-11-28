@@ -5,6 +5,7 @@
 #include "tree.h"
 #include "rd_hashmap.h"
 #include "rd_stack.h"
+#include <assert.h>
 #define COUNT(a) ((sizeof(a)) / (sizeof(a[0])))
 
 typedef struct
@@ -31,6 +32,16 @@ typedef struct
 
 typedef struct
 {
+    element_t C;
+    element_t C0;
+    HashMap *CX_;
+    rdmat W;
+    ptr_list attrs;
+    HashMap *states;
+} UEV;
+
+typedef struct
+{
     rdmat W;
     HashMap *lambda;
 } IP;
@@ -41,16 +52,6 @@ typedef struct
     element_t K1;
     HashMap *KX_;
 } SK;
-
-typedef struct
-{
-    element_t C;
-    element_t C0;
-    HashMap *CX_;
-    rdmat W;
-    ptr_list attrs;
-    HashMap *states;
-} UEV;
 
 typedef struct
 {
