@@ -17,15 +17,15 @@ int main()
     policy_init(&ev, &ip, pk, &m, PP, false);
 
     /******************************* KeyDist(PK,MK,S)→{SK}*******************************************************************/
-    char *S[] = {"A", "B", "Z"}; // Don't got any element repeated.
+    char *S[] = {"Z", "C", "D", "F", "G"}; // Don't got any element repeated.
     SK sk;
     key_dist(&sk, pk, mk, S, COUNT(S));
 
-    char *S2[] = {"E", "G", "Z"};
+    char *S2[] = {"A", "B", "E", "Z"};
     SK sk2;
     key_dist(&sk2, pk, mk, S2, COUNT(S2));
 
-    char *S3[] = {"Y", "G", "Z"};
+    char *S3[] = {"Y", "B", "E", "Z"};
     SK sk3;
     key_dist(&sk3, pk, mk, S3, COUNT(S3));
 
@@ -37,13 +37,14 @@ int main()
     puts("\n\nmodify@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n");
     /******************************* PolicyMod(PK,IP_cur,PP_new)→{UEV,IP_new}***********************************************/
     char *PP_new =
-        "(Z)&&((((A)&&(B))||((C)&&(D)))||(((Y)||(F))&&((G)||(H))))";
+        "(Z)&&((((Y)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H))))";
     UEV uev;
     policy_mod(&uev, pk, &ip, &ev, PP_new);
 
     /******************************* EvidMod(EV_cur,UEV)→{EV_new} **********************************************************/
 
     evidence_mod(&uev, &ev);
+    verify(m, ev, sk2, S2, COUNT(S2)) == 1 ? puts("S2 Decryption succeed.") : puts("S2 Decryption faild!");
     verify(m, ev, sk3, S3, COUNT(S3)) == 1 ? puts("S3 Decryption succeed.") : puts("S3 Decryption faild!");
 
     // Clear

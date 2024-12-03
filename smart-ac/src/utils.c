@@ -139,7 +139,7 @@ rdmat_f gaussian_elimination(rdmat augmentedMatrix)
         srand(time(NULL));
         for (int i = rank; i < cols - 1; i++)
         {
-            solution.elem[i] = (float)(rand() % 100) / 100.0;
+            solution.elem[i] = 1;// (float)(rand() % 100) / 100.0;
         }
     }
 
