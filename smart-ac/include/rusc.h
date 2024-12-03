@@ -60,7 +60,7 @@ typedef struct
 } RDResult;
 
 void sys_init(PK *, MK *);
-void policy_init(EV *, IP *, PK, M *, char *PP, bool is_update);
+void policy_init(EV *, IP *, PK, M *, char *PP);
 void key_dist(SK *, PK, MK, char **S, int size);
 int verify(M m, EV ev, SK sk, char **s, int my_attr_size);
 void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new);

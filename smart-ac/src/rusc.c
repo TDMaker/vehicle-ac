@@ -41,10 +41,10 @@ void sys_init(PK *pk, MK *mk)
     pairing_apply(pk->frag, pk->g, pk->g, pairing);
     element_pow_zn(pk->frag, pk->frag, *mk);
 }
-void policy_init(EV *ev, IP *ip, PK pk, M *m, char *pp, bool is_update)
+void policy_init(EV *ev, IP *ip, PK pk, M *m, char *pp)
 {
     // breadth_first_traversal(root, display, NULL);
-    if (!is_update)
+    if (m)
     {
         root = get_complete_tree(pp);
         get_W_rho(&(ev->W), &(ev->attrs), root);
@@ -55,23 +55,15 @@ void policy_init(EV *ev, IP *ip, PK pk, M *m, char *pp, bool is_update)
     int L = ev->W.rows;
     printf("L is %d\n", L);
     rdmat_mp vec_v = make_rdmat_mp(L, 1);
-    for (int i = 0; i < L; i++)
-    {
-        element_random(vec_v.elem[i]);
-    }
-    if (!is_update)
-    {
-        ip->lambda = get_lambda(ev->W, ev->attrs, vec_v);
-        ip->W = ev->W;
-    }
-
-    rdmat_print("ev->W", ev->W);
-
     rdmat_mp t_ = make_rdmat_mp(1, L);
     for (int i = 0; i < L; i++)
     {
+        element_random(vec_v.elem[i]);
         element_random(t_.elem[i]);
     }
+    HashMap *lambda = get_lambda(ev->W, ev->attrs, vec_v);
+    rdmat_print("ev->W", ev->W);
+
     element_t tmp1, tmp2, tmp3;
     element_init_G1(tmp1, pairing);
     element_init_Zr(tmp2, pairing);
@@ -79,14 +71,8 @@ void policy_init(EV *ev, IP *ip, PK pk, M *m, char *pp, bool is_update)
 
     element_init_GT(ev->C, pairing);
     element_pow_zn(tmp3, pk.frag, vec_v.elem[0]);
-    if (is_update)
-    {
-        element_set(ev->C, tmp3);
-    }
-    else
-    {
-        element_mul(ev->C, *m, tmp3);
-    }
+
+    m ? element_mul(ev->C, *m, tmp3) : element_set(ev->C, tmp3);
 
     element_init_G1(ev->C0, pairing);
     element_pow_zn(ev->C0, pk.g, vec_v.elem[0]);
@@ -97,16 +83,9 @@ void policy_init(EV *ev, IP *ip, PK pk, M *m, char *pp, bool is_update)
         element_t *tmpC = (element_t *)malloc(3 * sizeof(element_t));
         element_init_G1(tmpC[0], pairing);
         element_pow_zn(tmp1, pk.v, t_.elem[i]);
-        // if (!is_update)
-        {
-            element_pow_zn(tmpC[0], pk.w, *(element_t *)map_search(ip->lambda, attribute));
-        }
-        // else
-        // {
-        //     element_set1(tmpC[0]);
-        // }
-
+        element_pow_zn(tmpC[0], pk.w, *(element_t *)map_search(lambda, attribute));
         element_mul(tmpC[0], tmpC[0], tmp1);
+
         element_init_G1(tmpC[1], pairing);
         element_from_hash(tmp2, attribute, strlen(attribute));
         element_pow_zn(tmpC[1], pk.u, tmp2);
@@ -141,6 +120,13 @@ void policy_init(EV *ev, IP *ip, PK pk, M *m, char *pp, bool is_update)
     // element_printf("C3E = %B\n", TMP_CX_E[2]);
 
     //------
+
+    if (m)
+    {
+        // TODO: clear the lambda new generated if necessary, later.
+        ip->lambda = lambda;
+        ip->W = ev->W;
+    }
 
     element_clear(tmp1);
     element_clear(tmp2);
@@ -336,14 +322,17 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
     for (int i = 0; i < ev->attrs.length; i++)
     {
         char *attribute = (char *)ev->attrs.elem_[i];
-        element_t *tmpC_ev = (element_t *)map_search(ev->CX_, attribute);
+        // element_t *tmpC_ev = (element_t *)map_search(ev->CX_, attribute);
         element_t *tmpC_uev = (element_t *)malloc(3 * sizeof(element_t));
         element_init_G1(tmpC_uev[0], pairing);
         element_init_G1(tmpC_uev[1], pairing);
         element_init_G1(tmpC_uev[2], pairing);
-        element_set(tmpC_uev[0], tmpC_ev[0]);
-        element_set(tmpC_uev[1], tmpC_ev[1]);
-        element_set(tmpC_uev[2], tmpC_ev[2]);
+        // element_set(tmpC_uev[0], tmpC_ev[0]);
+        // element_set(tmpC_uev[1], tmpC_ev[1]);
+        // element_set(tmpC_uev[2], tmpC_ev[2]);
+        element_set1(tmpC_uev[0]);
+        element_set1(tmpC_uev[1]);
+        element_set1(tmpC_uev[2]);
         map_insert(uev->CX_, attribute, tmpC_uev);
         map_insert(uev->states, attribute, (void *)STATE_START);
     }
@@ -551,16 +540,16 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
     // element_t *TMP_CX_Y2 = map_search(uev->CX_, "Y");
     // element_printf("================%s is added\nCY1=%B\nCY2=%B\nCY3=%B\n", "Y", TMP_CX_Y2[0], TMP_CX_Y2[1], TMP_CX_Y2[2]);
 
-    policy_init(&a_new_ev, ip, pk, NULL, pp_new, true);
+    policy_init(&a_new_ev, NULL, pk, NULL, pp_new);
 
     // element_init_GT(uev->C, pairing);
     // element_init_G1(uev->C0, pairing);
     // element_set(uev->C, a_new_ev.C);
     // element_set(uev->C0, a_new_ev.C0);
-    element_mul(uev->C, uev->C, a_new_ev.C);
-    element_mul(uev->C0, uev->C0, a_new_ev.C0);
-    // element_set(uev->C, a_new_ev.C);
-    // element_set(uev->C0, a_new_ev.C0);
+    // element_mul(uev->C, uev->C, a_new_ev.C);
+    // element_mul(uev->C0, uev->C0, a_new_ev.C0);
+    element_set(uev->C, a_new_ev.C);
+    element_set(uev->C0, a_new_ev.C0);
     for (int i = 0; i < new_attrs.length; i++)
     {
         const char *attribute = (char *)new_attrs.elem_[i];
@@ -593,10 +582,10 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
 
 void evidence_mod(UEV *uev, EV *ev_cur)
 {
-    element_set(ev_cur->C, uev->C);
-    element_set(ev_cur->C0, uev->C0);
-    // element_mul(ev_cur->C, ev_cur->C, uev->C);
-    // element_mul(ev_cur->C0, ev_cur->C0, uev->C0);
+    // element_set(ev_cur->C, uev->C);
+    // element_set(ev_cur->C0, uev->C0);
+    element_mul(ev_cur->C, ev_cur->C, uev->C);
+    element_mul(ev_cur->C0, ev_cur->C0, uev->C0);
     for (int i = 0; i < COUNT(UNIVERS); i++)
     {
         const char *attribute = UNIVERS[i];
@@ -605,6 +594,7 @@ void evidence_mod(UEV *uev, EV *ev_cur)
         // printf("%s's CX_in_uev is %p, CX_in_ev_cur is %p\n", attribute, CX_in_uev, CX_in_ev_cur);
         switch ((State)map_search(uev->states, attribute))
         {
+        case STATE_START:
         case STATE_MULTIPLY:
             puts("``````````````````````````````````MUL");
             puts(attribute);
