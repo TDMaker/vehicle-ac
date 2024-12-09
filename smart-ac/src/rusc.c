@@ -358,10 +358,15 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
         state_update(uev->states, attribute, LABEL_DELETE);
 
         TreeNode *node2del = find_node_from_tree(attribute, root);
+        if (node2del->parent == NULL)
+        {
+            
+        }
+        printf("find node %s\n", attribute);
         bool conn_is_and = is_and(node2del->parent->value);
         TreeNode *lvlup_node = del_from_tree(node2del); // indeed need to modeify the old tree for the later compairing with the new one.
         element_t *_lambda_A = (element_t *)map_search(ip->lambda, attribute);
-        element_printf("%s's lambda is %B\n", attribute, *_lambda_A);
+        element_printf("\n%s's lambda is %B\n", attribute, *_lambda_A);
         printf("The level up node is %s\n", lvlup_node->value);
         // assert(conn_is_and == true);
         if (conn_is_and)
@@ -398,7 +403,6 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
         element_clear(*_lambda_A);
         map_remove(ip->lambda, attribute);
     }
-
     // ev->rho = shrink_list(ev->rho);
 
     Stack *stack = rd_stk_create_stack(100);
@@ -408,7 +412,7 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
         node2del = find_node_from_tree((char *)new_attrs.elem_[i], new_root);
         if (node2del != NULL && !is_attribute_in(node2del->value, my_result.the_remains))
         {
-            assert(strcmp(node2del->value, "Y") == 0);
+            // assert(strcmp(node2del->value, "Y") == 0);
             // find the node which is in new_attrs but not in the_remains, indicating this node was new added or first deleted and then added again.
             int path = get_path(node2del);
             if (path != -1)

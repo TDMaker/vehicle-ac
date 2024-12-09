@@ -14,7 +14,7 @@ int main()
     M m;
     EV ev;
     IP ip;
-    policy_init(&ev, &ip, pk, &m, PP, false);
+    policy_init(&ev, &ip, pk, &m, PP);
 
     /******************************* KeyDist(PK,MK,S)→{SK}*******************************************************************/
     char *S[] = {"Z", "C", "D", "F", "G"}; // Don't got any element repeated.
@@ -37,13 +37,15 @@ int main()
     puts("\n\nmodify@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n");
     /******************************* PolicyMod(PK,IP_cur,PP_new)→{UEV,IP_new}***********************************************/
     char *PP_new =
-        "(Z)&&((((Y)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H))))";
+        //"(Z)&&((((Y)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H))))";
+        "(A)&&((C)&&(H))";
     UEV uev;
     policy_mod(&uev, pk, &ip, &ev, PP_new);
 
     /******************************* EvidMod(EV_cur,UEV)→{EV_new} **********************************************************/
 
     evidence_mod(&uev, &ev);
+    verify(m, ev, sk, S, COUNT(S2)) == 1 ? puts("S1 Decryption succeed.") : puts("S1 Decryption faild!");
     verify(m, ev, sk2, S2, COUNT(S2)) == 1 ? puts("S2 Decryption succeed.") : puts("S2 Decryption faild!");
     verify(m, ev, sk3, S3, COUNT(S3)) == 1 ? puts("S3 Decryption succeed.") : puts("S3 Decryption faild!");
 
