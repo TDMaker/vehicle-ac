@@ -1,5 +1,7 @@
 #include <rusc.h>
 
+#define STRINGIFY(x) #x
+#define TRANSFORM(expr) "(Z)&&((Y)&&("STRINGIFY(expr)"))"
 int main()
 {
     /******************************* SysInit()→{PK,MK} *******************************************************************/
@@ -8,46 +10,66 @@ int main()
     sys_init(&pk, &mk);
 
     /******************************* PolicyInit(PK,M,PP)→{EV,IP} **********************************************************/
-    char *PP =
-        "(Z)&&((((A)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H))))";
+    char *PP = // TRANSFORM((Z)&&((((A)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H)))));
+               // "(Z)&&((((A)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H))))";
+        TRANSFORM((A)&&(C));
+    // "(Z)&&((Y)&&((A)&&(C)))";
+    puts(PP);
     // char* PP = "E and ((A and B) or (A and C) or (B and C) or (B and D) or (C and D))";
     M m;
     EV ev;
     IP ip;
     policy_init(&ev, &ip, pk, &m, PP);
 
-    /******************************* KeyDist(PK,MK,S)→{SK}*******************************************************************/
-    char *S[] = {"Z", "C", "D", "F", "G"}; // Don't got any element repeated.
+    /******************************* KeyDist(PK,MK,K)→{SK}*******************************************************************/
+    char *S[] = {"Z", "Y", "C", "D", "F", "G"}; // Don't got any element repeated.
     SK sk;
     key_dist(&sk, pk, mk, S, COUNT(S));
 
-    char *S2[] = {"A", "B", "E", "Z"};
+    char *S2[] = {"Z", "Y", "A", "B", "E"};
     SK sk2;
     key_dist(&sk2, pk, mk, S2, COUNT(S2));
 
-    char *S3[] = {"Y", "B", "E", "Z"};
+    char *S3[] = {"Z", "Y", "A", "C", "H", "D"};
     SK sk3;
     key_dist(&sk3, pk, mk, S3, COUNT(S3));
+
+    char *S4[] = {"Z", "Y", "B", "E"};
+    SK sk4;
+    key_dist(&sk4, pk, mk, S4, COUNT(S4));
 
     /******************************* Verify(M,EV,SK)→{0,1} *******************************************************************/
     verify(m, ev, sk, S, COUNT(S)) == 1 ? puts("SK1 Decryption succeed.") : puts("SK1 Decryption faild!");
     verify(m, ev, sk2, S2, COUNT(S2)) == 1 ? puts("SK2 Decryption succeed.") : puts("SK2 Decryption faild!");
     verify(m, ev, sk3, S3, COUNT(S3)) == 1 ? puts("SK3 Decryption succeed.") : puts("SK3 Decryption faild!");
+    verify(m, ev, sk4, S4, COUNT(S4)) == 1 ? puts("SK4 Decryption succeed.") : puts("SK4 Decryption faild!");
 
     puts("\n\nmodify@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n");
     /******************************* PolicyMod(PK,IP_cur,PP_new)→{UEV,IP_new}***********************************************/
-    char *PP_new =
-        //"(Z)&&((((Y)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H))))";
-        "(A)&&((C)&&(H))";
+    char *PP_new = TRANSFORM(A);
+    //"(Z)&&((Y)&&(A))";
+    // "(Z)&&((((Y)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H))))";
+    // "(Z)&&(((B)||((C)&&(D)))||(((E)||(F))&&((G)||(H))))";
+    // "(Z)&&(((C)&&(D))||(((E)||(F))&&((G)||(H))))";
+    // "(Z)&&(((D)||(((E)||(F))&&((G)||(H))))";
+    // "(Z)&&(((E)||(F))&&((G)||(H)))";
+    // "(Z)&&((F)&&((G)||(H)))";
+    // "(Z)&&((G)||(H))";
+    // "(Z)&&(H)";
+    // "(A)";
+    // "(Z)&&((A)&&((C)&&(H)))";
+    // "(Z)||(B)";
+    puts(PP_new);
     UEV uev;
     policy_mod(&uev, pk, &ip, &ev, PP_new);
 
     /******************************* EvidMod(EV_cur,UEV)→{EV_new} **********************************************************/
 
     evidence_mod(&uev, &ev);
-    verify(m, ev, sk, S, COUNT(S2)) == 1 ? puts("S1 Decryption succeed.") : puts("S1 Decryption faild!");
-    verify(m, ev, sk2, S2, COUNT(S2)) == 1 ? puts("S2 Decryption succeed.") : puts("S2 Decryption faild!");
-    verify(m, ev, sk3, S3, COUNT(S3)) == 1 ? puts("S3 Decryption succeed.") : puts("S3 Decryption faild!");
+    verify(m, ev, sk, S, COUNT(S2)) == 1 ? puts("SK1 Decryption succeed.") : puts("SK1 Decryption faild!");
+    verify(m, ev, sk2, S2, COUNT(S2)) == 1 ? puts("SK2 Decryption succeed.") : puts("SK2 Decryption faild!");
+    verify(m, ev, sk3, S3, COUNT(S3)) == 1 ? puts("SK3 Decryption succeed.") : puts("SK3 Decryption faild!");
+    verify(m, ev, sk4, S4, COUNT(S4)) == 1 ? puts("SK4 Decryption succeed.") : puts("SK4 Decryption faild!");
 
     // Clear
     // rd_cleanup(&pk, &mk, &sk, &ev, &ip);

@@ -323,6 +323,10 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
     {
         char *attribute = (char *)ev->attrs.elem_[i];
         // element_t *tmpC_ev = (element_t *)map_search(ev->CX_, attribute);
+        // element_init_GT(uev->C, pairing);
+        // element_init_G1(uev->C0, pairing);
+        // element_set(uev->C, ev->C);
+        // element_set(uev->C0, ev->C0);
         element_t *tmpC_uev = (element_t *)malloc(3 * sizeof(element_t));
         element_init_G1(tmpC_uev[0], pairing);
         element_init_G1(tmpC_uev[1], pairing);
@@ -349,6 +353,21 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
     for (int i = 0; i < my_result.the_deleted.length; i++)
     {
         char *attribute = (char *)my_result.the_deleted.elem_[i];
+        TreeNode *node2del = find_node_from_tree(attribute, root);
+        element_t *_lambda_A = (element_t *)map_search(ip->lambda, attribute);
+        if (node2del == root)
+        {
+            map_insert(ip->lambda, "META", (void *)_lambda_A);
+            map_remove(ip->lambda, node2del->value);
+            map_insert(uev->CX_, "META", map_search(uev->CX_, node2del->value));
+            map_remove(uev->CX_, node2del->value);
+            state_update(uev->states, attribute, LABEL_DELETE);
+            element_t *tlam = map_search(ip->lambda, "META");
+            element_t *tC = map_search(uev->CX_, "META");
+            element_printf("NOW, the META lambda is %B, its 3 C is %B, %B, %B\n", *tlam, tC[0], tC[0], tC[0]);
+            break;
+        }
+
         element_t *tmpC = (element_t *)map_search(uev->CX_, attribute);
         element_clear(tmpC[0]);
         element_clear(tmpC[1]);
@@ -357,18 +376,10 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
         map_remove(uev->CX_, attribute);
         state_update(uev->states, attribute, LABEL_DELETE);
 
-        TreeNode *node2del = find_node_from_tree(attribute, root);
-        if (node2del->parent == NULL)
-        {
-            
-        }
-        printf("find node %s\n", attribute);
         bool conn_is_and = is_and(node2del->parent->value);
         TreeNode *lvlup_node = del_from_tree(node2del); // indeed need to modeify the old tree for the later compairing with the new one.
-        element_t *_lambda_A = (element_t *)map_search(ip->lambda, attribute);
         element_printf("\n%s's lambda is %B\n", attribute, *_lambda_A);
         printf("The level up node is %s\n", lvlup_node->value);
-        // assert(conn_is_and == true);
         if (conn_is_and)
         {
             ptr_list the_affected = get_all_under_nodes(lvlup_node);
@@ -404,7 +415,6 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
         map_remove(ip->lambda, attribute);
     }
     // ev->rho = shrink_list(ev->rho);
-
     Stack *stack = rd_stk_create_stack(100);
     TreeNode *node2del;
     for (int i = 0; i < new_attrs.length; i++)
@@ -414,17 +424,34 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
         {
             // assert(strcmp(node2del->value, "Y") == 0);
             // find the node which is in new_attrs but not in the_remains, indicating this node was new added or first deleted and then added again.
-            int path = get_path(node2del);
-            if (path != -1)
+            if (node2del == new_root)
             {
-                int connector = is_and(node2del->parent->value) ? 1 : 0;
-                del_from_tree(node2del);
+                map_insert(ip->lambda, node2del->value, map_search(ip->lambda, "META"));
+                map_remove(ip->lambda, "META");
+                map_insert(uev->CX_, node2del->value, map_search(uev->CX_, "META"));
+                printf("%s's cx has been inserted as %p\n", node2del->value, map_search(uev->CX_, "META"));
+                map_remove(uev->CX_, "META");
+                state_update(uev->states, node2del->value, LABEL_ADD);
 
-                rd_stk_push(stack, (StkItem){.ptr = (char *)new_attrs.elem_[i], .path = path, .connector = connector});
+                element_t *tlam = map_search(ip->lambda, node2del->value);
+                element_t *tC = map_search(uev->CX_, node2del->value);
+                element_printf("NOW, the %s's lambda is %B, its 3 C is %B, %B, %B\n", node2del->value, *tlam, tC[0], tC[0], tC[0]);
+            }
+            else
+            {
+                int path = get_path(node2del);
+                if (path != -1)
+                {
+                    int connector = is_and(node2del->parent->value) ? 1 : 0;
+                    del_from_tree(node2del);
+
+                    rd_stk_push(stack, (StkItem){.ptr = (char *)new_attrs.elem_[i], .path = path, .connector = connector});
+                }
             }
         }
     }
-    // So far, the new tree as well as being clipped to look just like the old one.
+    print_state("A", (State)map_search(uev->states, "A"));
+    // So far, the new tree as well as being clipped to look just like the old one's part which shared the same sub-tree.
 
     while (!rd_stk_is_empty(stack))
     {
@@ -495,7 +522,7 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
                 element_sub(*_lambda_j, *_lambda_j, *_lambda_A);
                 element_printf("is %B\n", *_lambda_j);
                 element_t *tmpC_j = map_search(uev->CX_, inner_node->value);
-                // element_printf("%s's lambda turns to\n%B\n", inner_node->value, *_lambda_j);
+                printf("%s's tmpC_j = %p.\n", inner_node->value, tmpC_j);
                 element_neg(neg_lambda, *_lambda_A);
                 element_random(t_j);
                 element_pow_zn(tmp1, pk.w, neg_lambda);
@@ -508,7 +535,6 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
                 element_neg(tmp3, t_j);
                 element_pow_zn(tmp1, tmp1, tmp3);
                 element_mul(tmpC_j[1], tmpC_j[1], tmp1);
-
                 element_pow_zn(tmp1, pk.g, t_j);
                 element_mul(tmpC_j[2], tmpC_j[2], tmp1);
 
@@ -600,8 +626,7 @@ void evidence_mod(UEV *uev, EV *ev_cur)
         {
         case STATE_START:
         case STATE_MULTIPLY:
-            puts("``````````````````````````````````MUL");
-            puts(attribute);
+            printf("%s``````````````````````````````````MUL\n", attribute);
             element_mul(CX_in_ev_cur[0], CX_in_ev_cur[0], CX_in_uev[0]);
             element_mul(CX_in_ev_cur[1], CX_in_ev_cur[1], CX_in_uev[1]);
             element_mul(CX_in_ev_cur[2], CX_in_ev_cur[2], CX_in_uev[2]);
@@ -610,19 +635,20 @@ void evidence_mod(UEV *uev, EV *ev_cur)
             // element_set(CX_in_ev_cur[2], CX_in_uev[2]);
             break;
         case STATE_REPLACE:
-            puts("```````````````````````````REPLACE");
+            printf("%s``````````````````````````````REPLACE\n", attribute);
             element_set(CX_in_ev_cur[0], CX_in_uev[0]);
             element_set(CX_in_ev_cur[1], CX_in_uev[1]);
             element_set(CX_in_ev_cur[2], CX_in_uev[2]);
+            // element_mul(CX_in_ev_cur[0], CX_in_ev_cur[0], CX_in_uev[0]);
+            // element_mul(CX_in_ev_cur[1], CX_in_ev_cur[1], CX_in_uev[1]);
+            // element_mul(CX_in_ev_cur[2], CX_in_ev_cur[2], CX_in_uev[2]);
             break;
         case STATE_DELETE:
-            puts("`````````````````````````````````DEL");
-            puts(attribute);
+            printf("%s``````````````````````````````````DEL\n", attribute);
             map_remove(ev_cur->CX_, attribute);
             break;
         case STATE_ADD:
-            puts("`````````````````````````````````ADD");
-            puts(attribute);
+            printf("%s``````````````````````````````````ADD\n", attribute);
             element_t *CX2add = (element_t *)malloc(3 * sizeof(element_t));
             element_init_G1(CX2add[0], pairing);
             element_init_G1(CX2add[1], pairing);
@@ -680,7 +706,7 @@ RDResult get_the_result(ptr_list attrs1, ptr_list attrs2, TreeNode *root1, TreeN
     for (int i = 0; i < attrs1.length; i++)
     {
         char *this_attribute = (char *)attrs1.elem_[i];
-        if (!is_attribute_in(this_attribute, attrs2))
+        if (!is_attribute_in(this_attribute, attrs2) || !is_same_path(find_node_from_tree(this_attribute, root2), find_node_from_tree(this_attribute, root1)))
         {
             my_result.the_deleted = add_to_list(my_result.the_deleted, strdup(this_attribute));
         }
@@ -693,10 +719,6 @@ RDResult get_the_result(ptr_list attrs1, ptr_list attrs2, TreeNode *root1, TreeN
             if (is_same_path(find_node_from_tree(this_attribute, root2), find_node_from_tree(this_attribute, root1)))
             {
                 my_result.the_remains = add_to_list(my_result.the_remains, strdup(this_attribute));
-            }
-            else
-            {
-                my_result.the_deleted = add_to_list(my_result.the_deleted, strdup(this_attribute));
             }
         }
     }

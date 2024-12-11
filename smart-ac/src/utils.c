@@ -136,10 +136,11 @@ rdmat_f gaussian_elimination(rdmat augmentedMatrix)
     // 如果存在多余自由变量，则随机设置这些变量
     if (rank < cols - 1)
     {
-        srand(time(NULL));
+        // srand(time(NULL));
         for (int i = rank; i < cols - 1; i++)
         {
-            solution.elem[i] = 1;// (float)(rand() % 100) / 100.0;
+            solution.elem[i] = 1.0f;// (float)(rand() % 100) / 100.0;
+            // printf("element %d is set to %f\n", i, solution.elem[i]);
         }
     }
 
@@ -152,6 +153,7 @@ rdmat_f gaussian_elimination(rdmat augmentedMatrix)
             sum += augmentedMatrix.elem[i][j] * solution.elem[j];
         }
         solution.elem[i] = (augmentedMatrix.elem[i][cols - 1] - sum) / augmentedMatrix.elem[i][i];
+        // printf("element %d is set to %f / %d = %f\n", i, (augmentedMatrix.elem[i][cols - 1] - sum), augmentedMatrix.elem[i][i], solution.elem[i]);
     }
 
     return solution;
