@@ -1,5 +1,4 @@
 #include <rusc.h>
-
 #define STRINGIFY(x) #x
 #define TRANSFORM(expr) "(Z)&&((Y)&&("STRINGIFY(expr)"))"
 int main()
@@ -10,9 +9,10 @@ int main()
     sys_init(&pk, &mk);
 
     /******************************* PolicyInit(PK,M,PP)→{EV,IP} **********************************************************/
-    char *PP = // TRANSFORM((Z)&&((((A)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H)))));
+    char *PP = TRANSFORM((K)&&((((A)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H)))));
                // "(Z)&&((((A)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H))))";
-        TRANSFORM((A)&&(C));
+    //    TRANSFORM((K)&&(A));
+    // "(Z)&&((A)&&(C))";
     // "(Z)&&((Y)&&((A)&&(C)))";
     puts(PP);
     // char* PP = "E and ((A and B) or (A and C) or (B and C) or (B and D) or (C and D))";
@@ -22,15 +22,15 @@ int main()
     policy_init(&ev, &ip, pk, &m, PP);
 
     /******************************* KeyDist(PK,MK,K)→{SK}*******************************************************************/
-    char *S[] = {"Z", "Y", "C", "D", "F", "G"}; // Don't got any element repeated.
+    char *S[] = {"Z", "Y", "K", "A", "F", "G"}; // Don't got any element repeated.
     SK sk;
     key_dist(&sk, pk, mk, S, COUNT(S));
 
-    char *S2[] = {"Z", "Y", "A", "B", "E"};
+    char *S2[] = {"Z", "Y", "K", "B", "A", "C"};
     SK sk2;
     key_dist(&sk2, pk, mk, S2, COUNT(S2));
 
-    char *S3[] = {"Z", "Y", "A", "C", "H", "D"};
+    char *S3[] = {"Z", "Y", "K", "E", "G"};
     SK sk3;
     key_dist(&sk3, pk, mk, S3, COUNT(S3));
 
@@ -46,7 +46,7 @@ int main()
 
     puts("\n\nmodify@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n");
     /******************************* PolicyMod(PK,IP_cur,PP_new)→{UEV,IP_new}***********************************************/
-    char *PP_new = TRANSFORM(A);
+    char *PP_new = TRANSFORM((K)&&((((A)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H)))));
     //"(Z)&&((Y)&&(A))";
     // "(Z)&&((((Y)&&(B))||((C)&&(D)))||(((E)||(F))&&((G)||(H))))";
     // "(Z)&&(((B)||((C)&&(D)))||(((E)||(F))&&((G)||(H))))";

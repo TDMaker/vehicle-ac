@@ -37,7 +37,8 @@
         "ios": "c",
         "random": "c",
         "rd_stack.h": "c",
-        "tree.h": "c"
+        "tree.h": "c",
+        "chrono": "c"
     },
     "C_Cpp.default.includePath": [
         "./smart-ac/include",

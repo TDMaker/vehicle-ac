@@ -102,20 +102,23 @@ TreeNode *del_from_tree(TreeNode *node2del)
 {
     TreeNode *sibling = get_sibling(node2del);
     TreeNode *parent = node2del->parent;
-    strcpy(parent->value, sibling->value);
-    parent->left = sibling->left;
-    parent->right = sibling->right;
-    if (parent->left)
+    if (parent != NULL)
     {
-        parent->left->parent = parent;
-    }
-    if (parent->right)
-    {
-        parent->right->parent = parent;
-    }
-    free(sibling);
-    free(node2del);
 
+        strcpy(parent->value, sibling->value);
+        parent->left = sibling->left;
+        parent->right = sibling->right;
+        if (parent->left)
+        {
+            parent->left->parent = parent;
+        }
+        if (parent->right)
+        {
+            parent->right->parent = parent;
+        }
+        free(sibling);
+        free(node2del);
+    }
     return parent;
 }
 

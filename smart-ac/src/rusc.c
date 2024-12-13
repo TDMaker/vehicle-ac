@@ -3,7 +3,7 @@
 static char buffer[BUFFER_SIZE];
 pairing_t pairing; // Pairing that should be in PK is placed in global scope so that it can be linked correctly by other compiled modules.
 TreeNode *root;
-const char *UNIVERS[] = {"A", "B", "C", "D", "E", "F", "G", "H", "Y", "Z"};
+const char *UNIVERS[] = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "Y", "Z"};
 
 int init_pairing()
 {
@@ -355,18 +355,6 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
         char *attribute = (char *)my_result.the_deleted.elem_[i];
         TreeNode *node2del = find_node_from_tree(attribute, root);
         element_t *_lambda_A = (element_t *)map_search(ip->lambda, attribute);
-        if (node2del == root)
-        {
-            map_insert(ip->lambda, "META", (void *)_lambda_A);
-            map_remove(ip->lambda, node2del->value);
-            map_insert(uev->CX_, "META", map_search(uev->CX_, node2del->value));
-            map_remove(uev->CX_, node2del->value);
-            state_update(uev->states, attribute, LABEL_DELETE);
-            element_t *tlam = map_search(ip->lambda, "META");
-            element_t *tC = map_search(uev->CX_, "META");
-            element_printf("NOW, the META lambda is %B, its 3 C is %B, %B, %B\n", *tlam, tC[0], tC[0], tC[0]);
-            break;
-        }
 
         element_t *tmpC = (element_t *)map_search(uev->CX_, attribute);
         element_clear(tmpC[0]);
@@ -375,6 +363,19 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
         free(tmpC);
         map_remove(uev->CX_, attribute);
         state_update(uev->states, attribute, LABEL_DELETE);
+
+        // if (node2del == root)
+        // {
+        //     map_insert(ip->lambda, "META", (void *)_lambda_A);
+        //     map_remove(ip->lambda, node2del->value);
+        //     map_insert(uev->CX_, "META", map_search(uev->CX_, node2del->value));
+        //     map_remove(uev->CX_, node2del->value);
+        //     state_update(uev->states, attribute, LABEL_DELETE);
+        //     element_t *tlam = map_search(ip->lambda, "META");
+        //     element_t *tC = map_search(uev->CX_, "META");
+        //     element_printf("NOW, the META lambda is %B, its 3 C is %B, %B, %B\n", *tlam, tC[0], tC[0], tC[0]);
+        //     break;
+        // }
 
         bool conn_is_and = is_and(node2del->parent->value);
         TreeNode *lvlup_node = del_from_tree(node2del); // indeed need to modeify the old tree for the later compairing with the new one.
@@ -424,20 +425,20 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
         {
             // assert(strcmp(node2del->value, "Y") == 0);
             // find the node which is in new_attrs but not in the_remains, indicating this node was new added or first deleted and then added again.
-            if (node2del == new_root)
-            {
-                map_insert(ip->lambda, node2del->value, map_search(ip->lambda, "META"));
-                map_remove(ip->lambda, "META");
-                map_insert(uev->CX_, node2del->value, map_search(uev->CX_, "META"));
-                printf("%s's cx has been inserted as %p\n", node2del->value, map_search(uev->CX_, "META"));
-                map_remove(uev->CX_, "META");
-                state_update(uev->states, node2del->value, LABEL_ADD);
+            // if (node2del == new_root)
+            // {
+            //     map_insert(ip->lambda, node2del->value, map_search(ip->lambda, "META"));
+            //     map_remove(ip->lambda, "META");
+            //     map_insert(uev->CX_, node2del->value, map_search(uev->CX_, "META"));
+            //     printf("%s's cx has been inserted as %p\n", node2del->value, map_search(uev->CX_, "META"));
+            //     map_remove(uev->CX_, "META");
+            //     state_update(uev->states, node2del->value, LABEL_ADD);
 
-                element_t *tlam = map_search(ip->lambda, node2del->value);
-                element_t *tC = map_search(uev->CX_, node2del->value);
-                element_printf("NOW, the %s's lambda is %B, its 3 C is %B, %B, %B\n", node2del->value, *tlam, tC[0], tC[0], tC[0]);
-            }
-            else
+            //     element_t *tlam = map_search(ip->lambda, node2del->value);
+            //     element_t *tC = map_search(uev->CX_, node2del->value);
+            //     element_printf("NOW, the %s's lambda is %B, its 3 C is %B, %B, %B\n", node2del->value, *tlam, tC[0], tC[0], tC[0]);
+            // }
+            // else
             {
                 int path = get_path(node2del);
                 if (path != -1)
@@ -506,6 +507,7 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
             element_pow_zn(tmpC[1], tmp1, tmp3);
             element_pow_zn(tmpC[2], pk.g, t_A);
             map_insert(uev->CX_, the_new_added->value, (void *)tmpC);
+            printf("C's tmpC is %p\n", map_search(uev->CX_, "C"));
             state_update(uev->states, the_new_added->value, LABEL_ADD);
 
             TreeNode *sibling = get_sibling(the_new_added);
@@ -564,6 +566,7 @@ void policy_mod(UEV *uev, PK pk, IP *ip, EV *ev, char *pp_new)
     ip->W = new_W;
     uev->W = new_W;
     uev->attrs = new_attrs;
+    root = new_root;
 
     // rdmat_print("new_W", new_W);
     // print_list("new_rho", new_rho);
@@ -627,6 +630,8 @@ void evidence_mod(UEV *uev, EV *ev_cur)
         case STATE_START:
         case STATE_MULTIPLY:
             printf("%s``````````````````````````````````MUL\n", attribute);
+            if (CX_in_ev_cur == NULL)
+                goto ADD;
             element_mul(CX_in_ev_cur[0], CX_in_ev_cur[0], CX_in_uev[0]);
             element_mul(CX_in_ev_cur[1], CX_in_ev_cur[1], CX_in_uev[1]);
             element_mul(CX_in_ev_cur[2], CX_in_ev_cur[2], CX_in_uev[2]);
@@ -648,6 +653,7 @@ void evidence_mod(UEV *uev, EV *ev_cur)
             map_remove(ev_cur->CX_, attribute);
             break;
         case STATE_ADD:
+        ADD:
             printf("%s``````````````````````````````````ADD\n", attribute);
             element_t *CX2add = (element_t *)malloc(3 * sizeof(element_t));
             element_init_G1(CX2add[0], pairing);
